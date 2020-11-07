@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torch.distributions.categorical import Categorical
 from torch.optim import Adam
 import numpy as np
+from datalog import DataLogger
 
 DEVICE = 'cuda:0'
 
@@ -73,13 +74,12 @@ if __name__ == '__main__':
 
     problem = pypermu.problems.pfsp.Pfsp('../../instances/PFSP/tai20_5_8.fsp')
 
+    dl = DataLogger()
+
     model = Model(NOISE_LEN, N, device=DEVICE)
     model.to(DEVICE)
     optimizer = Adam(model.parameters(), lr=LR)
 
-    log_min = []
-    log_best = []
-    log_loss = []
     for it in range(ITERS):
         noise = torch.rand(NOISE_LEN).to(DEVICE)
         distribution = model.get_distribution(noise)
@@ -89,8 +89,7 @@ if __name__ == '__main__':
         fitness_list = torch.tensor(
             problem.evaluate(permus)).float().to(DEVICE)
 
-        log_min.append(torch.min(fitness_list).item())
-        log_best.append(np.min(log_min))
+        dl.push(fitness_list=fitness_list.cpu().numpy())
 
         fitness_list -= fitness_list.mean()
 
@@ -99,17 +98,8 @@ if __name__ == '__main__':
         loss.backward()  # update gradient buffers
         optimizer.step()  # update model's parameters
 
-        print(it, ', loss; {:10.3f}'.format(loss.item()),
-              ', min fitness: {:10.3f}'.format(log_min[-1]))
-        log_loss.append(loss.item())
+        dl.push(loss_value=loss.item())
+        print(it+1, '/', ITERS, end=' ')
+        dl.print()
 
-        plt.clf()
-        plt.subplot(2, 1, 1)
-        plt.plot(range(len(log_min)), log_min, label='min fitness')
-        plt.plot(range(len(log_best)), log_best, label='best fitness')
-        plt.legend()
-
-        plt.subplot(2, 1, 2)
-        plt.plot(range(len(log_loss)), log_loss, label='loss')
-        plt.legend()
-        plt.pause(.001)
+    dl.plot()
