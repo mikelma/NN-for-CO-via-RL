@@ -68,7 +68,7 @@ if __name__ == '__main__':
     NOISE_LEN = 128
     N = 20
     N_SAMPLES = 64
-    LR = .001
+    LR = .0003
     ITERS = 2000
 
     problem = pypermu.problems.pfsp.Pfsp('../../instances/PFSP/tai20_5_8.fsp')
@@ -77,7 +77,9 @@ if __name__ == '__main__':
     model.to(DEVICE)
     optimizer = Adam(model.parameters(), lr=LR)
 
-    min_fitness = []
+    log_min = []
+    log_best = []
+    log_loss = []
     for it in range(ITERS):
         noise = torch.rand(NOISE_LEN).to(DEVICE)
         distribution = model.get_distribution(noise)
@@ -86,16 +88,28 @@ if __name__ == '__main__':
         permus = [marina2permu(v) for v in samples.cpu()]
         fitness_list = torch.tensor(
             problem.evaluate(permus)).float().to(DEVICE)
-        min_fitness.append(torch.min(fitness_list))
+
+        log_min.append(torch.min(fitness_list).item())
+        log_best.append(np.min(log_min))
 
         fitness_list -= fitness_list.mean()
 
         optimizer.zero_grad()  # clear gradient buffers
         loss = compute_loss(samples, distribution, fitness_list)
-        print(it, ', loss; ', loss.item(), ', min fitness: ', min_fitness[-1])
         loss.backward()  # update gradient buffers
         optimizer.step()  # update model's parameters
 
+        print(it, ', loss; {:10.3f}'.format(loss.item()),
+              ', min fitness: {:10.3f}'.format(log_min[-1]))
+        log_loss.append(loss.item())
+
         plt.clf()
-        plt.plot(range(len(min_fitness)), min_fitness, label='min fitness')
+        plt.subplot(2, 1, 1)
+        plt.plot(range(len(log_min)), log_min, label='min fitness')
+        plt.plot(range(len(log_best)), log_best, label='best fitness')
+        plt.legend()
+
+        plt.subplot(2, 1, 2)
+        plt.plot(range(len(log_loss)), log_loss, label='loss')
+        plt.legend()
         plt.pause(.001)
