@@ -1,2 +1,5 @@
-pypermy.so
+pypermu.so
+*.pdf
+__pycache__
 *.png
+!docs/img/*.png
