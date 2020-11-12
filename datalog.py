@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import numpy as np
 
 
@@ -13,8 +14,9 @@ class DataLogger():
         self.log['mean fitness'] = []
         self.log['best fitness'] = []
         self.log['loss'] = []
+        self.log['entropy'] = []
 
-    def push(self, fitness_list=None, loss_value=None):
+    def push(self, fitness_list=None, loss_value=None, entropy_value=None):
         if fitness_list is not None:
             min_f = np.min(fitness_list)
             self.log['min fitness'].append(min_f)
@@ -28,28 +30,40 @@ class DataLogger():
         if loss_value is not None:
             self.log['loss'].append(loss_value)
 
+        if entropy_value is not None:
+            self.log['entropy'].append(entropy_value)
+
     def print(self):
         for key in self.log.keys():
-            print((key+': {:10.3f}').format(self.log[key][-1]), end=' ')
+            if self.log[key]:
+                print((key+': {:10.3f}').format(self.log[key][-1]), end=' ')
         print()
 
     def plot_key(self, key):
         plt.plot(range(len(self.log[key])),
                  self.log[key], label=key)
+        plt.title(key)
 
     def plot(self, update=False):
         if update:
             plt.clf()
 
+        gs = gridspec.GridSpec(2, 2)
+
         # fitness related plots
-        plt.subplot(2, 1, 1)
+        plt.subplot(gs[0, 0])
         self.plot_key('min fitness')
         self.plot_key('mean fitness')
+        self.plot_key('best fitness')
         plt.legend()
 
         # loss value related plots
-        plt.subplot(2, 1, 2)
+        plt.subplot(gs[0, 1])
         self.plot_key('loss')
+        plt.legend()
+
+        plt.subplot(gs[1, :])
+        self.plot_key('entropy')
         plt.legend()
 
         if not update:

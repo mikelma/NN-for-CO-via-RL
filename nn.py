@@ -58,19 +58,23 @@ def log_probs(samples, distribution):
     return torch.sum(torch.stack(log_probs), dim=0)
 
 
+def entropy(distribution):
+    return sum([d.entropy() for d in distribution])
+
+
 def compute_loss(samples, distribution, fitness):
     logp = log_probs(samples, distribution)
     return (logp * fitness).mean()
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-
     NOISE_LEN = 128
     N = 20
     N_SAMPLES = 64
     LR = .0003
-    ITERS = 2000
+    # ITERS = 2000
+    ITERS = 4000
+    C = 40
 
     problem = pypermu.problems.pfsp.Pfsp('../../instances/PFSP/tai20_5_8.fsp')
 
@@ -93,8 +97,13 @@ if __name__ == '__main__':
 
         fitness_list -= fitness_list.mean()
 
+        # with torch.no_grad():
+        #     dl.push(entropy_value=entropy(distribution))
+        h = entropy(distribution)
+        dl.push(entropy_value=h.item())
+
         optimizer.zero_grad()  # clear gradient buffers
-        loss = compute_loss(samples, distribution, fitness_list)
+        loss = compute_loss(samples, distribution, fitness_list) - C*h
         loss.backward()  # update gradient buffers
         optimizer.step()  # update model's parameters
 
