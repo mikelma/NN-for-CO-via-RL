@@ -73,7 +73,7 @@ if __name__ == '__main__':
     N_SAMPLES = 64
     LR = .0003
     # ITERS = 2000
-    ITERS = 4000
+    ITERS = 40
     C = 40
 
     problem = pypermu.problems.pfsp.Pfsp('../../instances/PFSP/tai20_5_8.fsp')
@@ -97,17 +97,15 @@ if __name__ == '__main__':
 
         fitness_list -= fitness_list.mean()
 
-        # with torch.no_grad():
-        #     dl.push(entropy_value=entropy(distribution))
         h = entropy(distribution)
-        dl.push(entropy_value=h.item())
+        dl.push(other={'entropy': h.item()})
 
         optimizer.zero_grad()  # clear gradient buffers
         loss = compute_loss(samples, distribution, fitness_list) - C*h
         loss.backward()  # update gradient buffers
         optimizer.step()  # update model's parameters
 
-        dl.push(loss_value=loss.item())
+        dl.push(other={'loss': loss.item()})
         print(it+1, '/', ITERS, end=' ')
         dl.print()
 

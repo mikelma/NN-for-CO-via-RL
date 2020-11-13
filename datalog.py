@@ -13,10 +13,9 @@ class DataLogger():
         self.log['min fitness'] = []
         self.log['mean fitness'] = []
         self.log['best fitness'] = []
-        self.log['loss'] = []
-        self.log['entropy'] = []
 
-    def push(self, fitness_list=None, loss_value=None, entropy_value=None):
+    def push(self, fitness_list=None, other=None):
+
         if fitness_list is not None:
             min_f = np.min(fitness_list)
             self.log['min fitness'].append(min_f)
@@ -27,11 +26,12 @@ class DataLogger():
             self.log['best fitness'].append(
                 min_f if min_f < old_best_f else old_best_f)
 
-        if loss_value is not None:
-            self.log['loss'].append(loss_value)
-
-        if entropy_value is not None:
-            self.log['entropy'].append(entropy_value)
+        if other != None:
+            for key in other.keys():
+                # if the key does no exist in the logger
+                if key not in self.log:
+                    self.log[key] = []  # init
+                self.log[key].append(other[key])
 
     def print(self):
         for key in self.log.keys():
@@ -52,8 +52,8 @@ class DataLogger():
 
         # fitness related plots
         plt.subplot(gs[0, 0])
-        self.plot_key('min fitness')
         self.plot_key('mean fitness')
+        self.plot_key('min fitness')
         self.plot_key('best fitness')
         plt.legend()
 
