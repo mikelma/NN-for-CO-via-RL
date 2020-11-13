@@ -67,13 +67,21 @@ def compute_loss(samples, distribution, fitness):
     return (logp * fitness).mean()
 
 
+@torch.no_grad()
+def probability(marina, distribution):
+    '''Computes the probability of a marina vector to be 
+    sampled from a given marginal distribution.
+    '''
+    return np.prod([d.probs[marina[i]].item() for i, d in enumerate(distribution)])
+
+
 if __name__ == '__main__':
     NOISE_LEN = 128
     N = 20
     N_SAMPLES = 64
     LR = .0003
     # ITERS = 2000
-    ITERS = 40
+    ITERS = 4000
     C = 40
 
     problem = pypermu.problems.pfsp.Pfsp('../../instances/PFSP/tai20_5_8.fsp')
@@ -106,6 +114,11 @@ if __name__ == '__main__':
         optimizer.step()  # update model's parameters
 
         dl.push(other={'loss': loss.item()})
+        dl.push(other={'best sol. prob.': probability(
+            samples[fitness_list.argmin()], distribution)})
+        dl.push(other={'worst sol. prob.': probability(
+            samples[fitness_list.argmax()], distribution)})
+
         print(it+1, '/', ITERS, end=' ')
         dl.print()
 
