@@ -80,13 +80,21 @@ if __name__ == '__main__':
     N = 20
     N_SAMPLES = 64
     LR = .0003
-    # ITERS = 2000
     ITERS = 4000
     C = 40
+    LOG_FILE = 'log.csv'
+    INSTANCE = '../../instances/PFSP/tai20_5_8.fsp'
+
+    dl = DataLogger({'instance': INSTANCE.split('/')[-1],
+                     'instance size': N,
+                     'max iters': ITERS,
+                     'num. samples': N_SAMPLES,
+                     'learning rate': LR,
+                     'noise length': NOISE_LEN,
+                     'C': C,
+                     })
 
     problem = pypermu.problems.pfsp.Pfsp('../../instances/PFSP/tai20_5_8.fsp')
-
-    dl = DataLogger()
 
     model = Model(NOISE_LEN, N, device=DEVICE)
     model.to(DEVICE)
@@ -95,7 +103,7 @@ if __name__ == '__main__':
     for it in range(ITERS):
         noise = torch.rand(NOISE_LEN).to(DEVICE)
         distribution = model.get_distribution(noise)
-        samples = sample(distribution, 3)
+        samples = sample(distribution, N_SAMPLES)
 
         permus = [marina2permu(v) for v in samples.cpu()]
         fitness_list = torch.tensor(
@@ -106,20 +114,24 @@ if __name__ == '__main__':
         fitness_list -= fitness_list.mean()
 
         h = entropy(distribution)
-        dl.push(other={'entropy': h.item()})
 
         optimizer.zero_grad()  # clear gradient buffers
         loss = compute_loss(samples, distribution, fitness_list) - C*h
         loss.backward()  # update gradient buffers
         optimizer.step()  # update model's parameters
 
-        dl.push(other={'loss': loss.item()})
-        dl.push(other={'best sol. prob.': probability(
-            samples[fitness_list.argmin()], distribution)})
-        dl.push(other={'worst sol. prob.': probability(
-            samples[fitness_list.argmax()], distribution)})
-
+        # --------------------- logger --------------------- #
+        dl.push(other={'iteration': it,
+                       'entropy': h.item(),
+                       'loss': loss.item(),
+                       'best sol. prob.': probability(samples[fitness_list.argmin()],
+                                                      distribution),
+                       'worst sol. prob.': probability(samples[fitness_list.argmax()],
+                                                       distribution)
+                       })
         print(it+1, '/', ITERS, end=' ')
         dl.print()
 
+    if LOG_FILE != None:
+        dl.to_csv(LOG_FILE, ITERS)
     dl.plot()
