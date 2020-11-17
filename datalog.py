@@ -74,7 +74,7 @@ class DataLogger():
         # entopy
         ax1 = plt.subplot(gs[1, :])
         ax1.plot(range(len(self.log['entropy'])),
-                 self.log['entropy'], color='tab:purple', label='entropy')
+                 self.log['entropy'], color='tab:purple', label='entropy', alpha=.7)
         ax1.set_xlabel('Iterations')
         ax1.set_ylabel('Entopy')
         ax1.set_title("Model's convergency metrics")
@@ -85,10 +85,10 @@ class DataLogger():
         ax2.set_ylabel('Probability')
         key = 'best sol. prob.'
         ax2.plot(range(len(self.log[key])),
-                 self.log[key], color='tab:orange', label=key)
+                 self.log[key], color='tab:orange', label=key, alpha=.7)
         key = 'worst sol. prob.'
         ax2.plot(range(len(self.log[key])),
-                 self.log[key], 'b-', color='tab:blue', label=key)
+                 self.log[key], 'b-', color='tab:blue', label=key, alpha=.7)
         ax2.legend(loc=4)
 
         if not update:
@@ -100,7 +100,7 @@ class DataLogger():
         import csv
         import os
 
-        write_header = os.path.isfile(filename)
+        write_header = not os.path.isfile(filename)
         with open(filename, 'a') as csvfile:
             writer = csv.writer(csvfile)
 
