@@ -111,6 +111,8 @@ Figure \ref{2020_11_15_2} clearly shows that the model suffers for premature con
 Starting from the top left plot, where the fitness of the sampled solutions are presented, from iteration $900$ onwards, minimum and mean fitnesses are equal, suggesting that all (or the majority) of the sampled solutions are identical.
 Continuing with the next plot (top right plot in Figure \ref{2020_11_15_2}), the loss function converges to $0$ when the minimum and mean fitness values converge. This is logical as the utility function $U(v)$ tends to $0$ when the fitness of the sampled solution is similar to the mean fitness of the sampled solutions.
 
+![Trainin metrics of a single execution where $C=40$ .\label{2020_11_17_1}](img/2020_11_17_1.png){ width=110% }
+
 Finally, the bottom plot in Figure \ref{2020_11_15_2} shows the convergency metrics of the model over the execution iterations. As can be seen, the entropy of the model rapidly drops to $0$ (note that the maximum entropy the model could have considering $n=20$, is $42.335$) in about $700$ iterations. 
 
 If we take a look to the probability of the best sampled solution, the probability rapidly increases from almost $0$ to a $1$, and remains with the highest probability for the whole execution.
@@ -120,3 +122,21 @@ In order to evaluate the model's convergency with respect to the $C$ parameter (
 The algorithm (with the same experimental setup as the latter experiment) was executed $3$ times for each $C={0, 1, 40}$. The obtained results are shown in Figure \ref{2020_11_15_1}.
 
 ![$C$ parameter value comparison. Note that the values above $1$ in the bottom left plot are the standard deviation of the probability, not the probability value itself.\label{2020_11_15_1}](img/2020_11_15_1.png){ width=110% }
+
+## A new way to introduce the entropy term in the loss function
+
+In this section we explore a new way to introduce the entropy in the loss function. Thus defining a new loss function refered as $L_3$ loss.
+
+$$L_3(\theta) = \mathbb{E}_{v\sim\theta}[logP(v|x, \theta) U(v)] \frac{H(v|x, \theta)}{max_H}$$
+
+Where $x$ is random noise vector sampled from a uniforma probability distribution, $U(v)$ is the utility function, $H(v|x, \theta)$ is the entropy of the model's distribution and $max_H$ is the maximum entropy value the distribution over inversion vectors could have.
+One inmediate benefit of the $L_3$ loss function over the last loss function is that the $C$ parameter is no longer needed, one \textit{magic} value less!
+
+![Trainin metrics withe the new $L_3$ loss.\label{2020_11_17_2}](img/2020_11_17_2.png){ width=110% }
+
+In Figure \ref{2020_11_17_2} results of a single execution are shown, the experimental setup is exactly the same as before. The only changes from the experiments in the last section are the loss function (replaced with the new $L_3$) and the ausence of the $C$ parameter.
+
+As can be seen in the plots, the the convergency of the model is fast, but considerably smoother compared to the experiments of the last section. Also, the obtained results in this execution are also quite competitive.
+
+![Comparison of different loss functions. For each loss function, 4 executions were run.\label{2020_11_18_1_}](img/2020_11_18_1.png){ width=110% }
+

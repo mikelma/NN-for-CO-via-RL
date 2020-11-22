@@ -67,9 +67,14 @@ def compute_loss(samples, distribution, fitness):
     return (logp * fitness).mean()
 
 
+def compute_loss_3(samples, distribution, fitness, entropy, max_entropy):
+    logp = log_probs(samples, distribution)
+    return -(logp * fitness).mean()*(entropy/max_entropy)
+
+
 @torch.no_grad()
 def probability(marina, distribution):
-    '''Computes the probability of a marina vector to be 
+    '''Computes the probability of a marina vector to be
     sampled from a given marginal distribution.
     '''
     return np.prod([d.probs[marina[i]].item() for i, d in enumerate(distribution)])
@@ -83,7 +88,11 @@ if __name__ == '__main__':
     ITERS = 4000
     C = 40
     LOG_FILE = 'log.csv'
+    LOSS_FUNC = 'L2'
     INSTANCE = '../../instances/PFSP/tai20_5_8.fsp'
+
+    max_entropy = torch.tensor(
+        sum([i*(1/i)*np.log(1/i) for i in range(1, N+1)]))
 
     dl = DataLogger({'instance': INSTANCE.split('/')[-1],
                      'instance size': N,
@@ -92,6 +101,7 @@ if __name__ == '__main__':
                      'learning rate': LR,
                      'noise length': NOISE_LEN,
                      'C': C,
+                     'loss function': LOSS_FUNC,
                      })
 
     problem = pypermu.problems.pfsp.Pfsp('../../instances/PFSP/tai20_5_8.fsp')
@@ -116,7 +126,16 @@ if __name__ == '__main__':
         h = entropy(distribution)
 
         optimizer.zero_grad()  # clear gradient buffers
-        loss = compute_loss(samples, distribution, fitness_list) - C*h
+
+        if LOSS_FUNC == 'L2':
+            loss = compute_loss(samples, distribution, fitness_list) - C*h
+        elif LOSS_FUNC == 'L3':
+            loss = compute_loss_3(samples, distribution,
+                                  fitness_list, h, max_entropy)
+        else:
+            print('Invalid loss function: ', LOSS_FUNC)
+            quit()
+
         loss.backward()  # update gradient buffers
         optimizer.step()  # update model's parameters
 
