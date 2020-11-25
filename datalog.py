@@ -35,9 +35,9 @@ class DataLogger():
                     self.log[key] = []  # init
                 self.log[key].append(other[key])
 
-    def print(self):
+    def print(self, ignore=[]):
         for key in self.log.keys():
-            if self.log[key]:
+            if self.log[key] and key not in ignore:
                 print((key+': {:10.3f}').format(self.log[key][-1]), end=' ')
         print()
 
