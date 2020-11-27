@@ -43,8 +43,10 @@ for it in range(ITERS):
     samples = models.sample(distribution, N_SAMPLES)
 
     permus = [utils.marina2permu(v) for v in samples.cpu()]
+    print('using inverse')
+    inverses = [utils.permu2inverse(permu) for permu in permus]
     fitness_list = torch.tensor(
-        problem.evaluate(permus)).float().to(DEVICE)
+        problem.evaluate(inverses)).float().to(DEVICE)
 
     dl.push(fitness_list=fitness_list.cpu().numpy())
 
@@ -74,4 +76,4 @@ for it in range(ITERS):
 
 if LOG_FILE != None:
     dl.to_csv(LOG_FILE, ITERS)
-# dl.plot()
+dl.plot()

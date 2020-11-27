@@ -30,3 +30,7 @@ def distr_to_square(distribution):
         matrix.append(np.append(d.probs.cpu().numpy(), [0]*i))
 
     return np.array(matrix)
+
+
+def permu2inverse(permu):
+    return np.array([np.where(permu == e)[0][0] for e in range(len(permu))])
