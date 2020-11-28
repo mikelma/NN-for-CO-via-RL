@@ -13,8 +13,13 @@ def marina2permu(marina):
     return permu
 
 
-def entropy(distribution):
-    return sum([d.entropy() for d in distribution])
+def entropy(distribution, reduction='sum'):
+    h = [d.entropy() for d in distribution]
+
+    if reduction == 'sum':
+        return sum(h)
+    elif reduction == 'none':
+        return h
 
 
 def probability(marina, distribution):
@@ -27,7 +32,7 @@ def probability(marina, distribution):
 def distr_to_square(distribution):
     matrix = []
     for i, d in enumerate(distribution):
-        matrix.append(np.append(d.probs.cpu().numpy(), [0]*i))
+        matrix.append(np.append(d.probs.cpu().detach().numpy(), [0]*i))
 
     return np.array(matrix)
 
