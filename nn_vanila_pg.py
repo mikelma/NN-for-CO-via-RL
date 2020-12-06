@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import pypermu
 import torch
 from torch.optim import Adam
@@ -7,20 +6,55 @@ from datalog import DataLogger
 import utils
 import loss_funcs
 import models
+import uuid
+import argparse
 
-NOISE_LEN = 128
-N_SAMPLES = 64
-LR = .0003
-ITERS = 1000
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--instance-size', metavar='N', type=int, nargs=1,
+                    required=True, help='Size of the instance', choices=[20, 50])
+parser.add_argument('--instance', metavar='FILE', type=str, nargs=1,
+                    required=True, help='Path to the instance file')
+parser.add_argument('--log', metavar='FILE', type=str, nargs='?', default=False, const=True,
+                    required=False, help='If this falg is set, the logger will be stored as a CSV')
+args = parser.parse_args()
+
+N = args.instance_size[0]
+INSTANCE = args.instance[0]
+WRITE_LOG = False if args.log == False else True
+
+##############################
+#   Common hyperparameters   #
+##############################
+DEVICE = 'cpu'
+
 LOSS_FUNC = 'L2'
 C = 40
 EVAL_INVERSE = True
+##############################
+##############################
 
-DEVICE = 'cuda:0'
-LOG_FILE = None
-N = 20
-INSTANCE = '../../instances/PFSP/tai20_5_8.fsp'
+#----------------------------#
+#       params: N=20         #
+#----------------------------#
+if N == 20:
+    NOISE_LEN = 128
+    N_SAMPLES = 64
+    LR = .0003
+    ITERS = 1000
+    MODEL = models.SimpleModel
+#----------------------------#
 
+#----------------------------#
+#       params: N=50         #
+#----------------------------#
+if N == 50:
+    NOISE_LEN = 128
+    N_SAMPLES = 64
+    LR = .0003
+    ITERS = 1000
+    MODEL = models.SimpleModel
+#----------------------------#
 
 dl = DataLogger({'instance': INSTANCE.split('/')[-1],
                  'instance size': N,
@@ -31,11 +65,11 @@ dl = DataLogger({'instance': INSTANCE.split('/')[-1],
                  'C': C,
                  'loss function': LOSS_FUNC,
                  'eval inverse': EVAL_INVERSE,
+                 'model': MODEL.name,
                  })
 
-problem = pypermu.problems.pfsp.Pfsp('../../instances/PFSP/tai20_5_8.fsp')
-
-model = models.SimpleModel(NOISE_LEN, N, device=DEVICE)
+problem = pypermu.problems.pfsp.Pfsp(INSTANCE)
+model = MODEL(NOISE_LEN, N, device=DEVICE)
 model.to(DEVICE)
 optimizer = Adam(model.parameters(), lr=LR)
 
@@ -59,7 +93,8 @@ for it in range(ITERS):
 
     fitness_list -= fitness_list.mean()
 
-    h = utils.entropy(distribution)
+    if LOSS_FUNC in ['L2', 'L3']:
+        h = utils.entropy(distribution)
 
     optimizer.zero_grad()  # clear gradient buffers
 
@@ -77,43 +112,13 @@ for it in range(ITERS):
     with torch.no_grad():
         logp = models.log_probs_unprocessed(samples, distribution)
         h_list = utils.entropy(distribution, reduction='none')
-        dl.push(
-            other={
-                'logp v0': logp[0], 'logp v10': logp[10], 'logp v17': logp[17],
-                'H v0': h_list[0], 'H v10': h_list[10], 'H v17': h_list[17],
-                'Pmax v0': distribution[0].probs.max(), 'Pmax v17': distribution[17].probs.max(),
-            })
         dl.push(other={'iteration': it,
                        'entropy': h.item(),
                        'loss': loss.item(),
                        })
-        print(it+1, '/', ITERS, end=' ')
-        dl.print()
+        if not WRITE_LOG:
+            print(it+1, '/', ITERS, end=' ')
+            dl.print()
 
-if LOG_FILE != None:
-    dl.to_csv(LOG_FILE, ITERS)
-
-ax1 = plt.subplot(2, 1, 1)
-ax1.plot(range(ITERS), dl.log['logp v0'], label='logp v0', alpha=.75)
-ax1.plot(range(ITERS), dl.log['logp v10'], label='logp v10', alpha=.75)
-ax1.plot(range(ITERS), dl.log['logp v17'], label='logp v17', alpha=.75)
-ax1.set_xlabel('Iterations')
-ax1.set_ylabel('Log probability')
-ax1.legend(loc=1)
-
-ax2 = ax1.twinx()
-ax2.set_ylabel('Entropy')
-ax2.plot(range(ITERS), dl.log['H v0'], '--', label='H v0', alpha=.75)
-ax2.plot(range(ITERS), dl.log['H v10'], '--', label='H v10', alpha=.75)
-ax2.plot(range(ITERS), dl.log['H v17'], '--', label='H v17', alpha=.75)
-ax2.legend(loc=4)
-
-plt.subplot(2, 1, 2)
-plt.plot(range(ITERS), dl.log['Pmax v0'], label='Pmax v0')
-plt.plot(range(ITERS), dl.log['Pmax v17'], label='Pmax v17')
-plt.legend()
-
-plt.title("Dissection of the loss function (loss function: "+LOSS_FUNC+")")
-plt.show()
-
-dl.plot()
+if WRITE_LOG:
+    dl.to_csv(str(uuid.uuid4())+'.csv', ITERS)
