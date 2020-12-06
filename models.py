@@ -4,6 +4,7 @@ import torch
 
 
 class SimpleModel(torch.nn.Module):
+    name = 'SimpleModel 1'
 
     def __init__(self, D_in, N, device='cuda:0'):
         super(SimpleModel, self).__init__()
@@ -28,6 +29,7 @@ class SimpleModel(torch.nn.Module):
 
 
 class MultiHeadModel(torch.nn.Module):
+    name = 'MultiHeadModel 1'
 
     def __init__(self, D_in, N, device='cuda:0'):
         super(MultiHeadModel, self).__init__()
