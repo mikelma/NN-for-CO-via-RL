@@ -80,16 +80,16 @@ class DataLogger():
         ax1.set_title("Model's convergency metrics")
         ax1.legend(loc=1)
         # instantiate a second axes that shares the same x-axis
-        ax2 = ax1.twinx()
-        # plot prob. of samplig the best and worst solutions
-        ax2.set_ylabel('Probability')
-        key = 'best sol. prob.'
-        ax2.plot(range(len(self.log[key])),
-                 self.log[key], color='tab:orange', label=key, alpha=.7)
-        key = 'worst sol. prob.'
-        ax2.plot(range(len(self.log[key])),
-                 self.log[key], 'b-', color='tab:blue', label=key, alpha=.7)
-        ax2.legend(loc=4)
+        # ax2 = ax1.twinx()
+        # # plot prob. of samplig the best and worst solutions
+        # ax2.set_ylabel('Probability')
+        # key = 'best sol. prob.'
+        # ax2.plot(range(len(self.log[key])),
+        #          self.log[key], color='tab:orange', label=key, alpha=.7)
+        # key = 'worst sol. prob.'
+        # ax2.plot(range(len(self.log[key])),
+        #          self.log[key], 'b-', color='tab:blue', label=key, alpha=.7)
+        # ax2.legend(loc=4)
 
         if not update:
             plt.show()

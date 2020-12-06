@@ -76,7 +76,16 @@ def sample(distribution, n_samples):
 
 
 def log_probs(samples, distribution):
-    log_probs = []
+    '''Returs the log probabilities of the samples given a probability distribution.
+    '''
+    log_probs = []  # logprob of the element in the i-th position of each sample
     for i, elems in enumerate(samples.T):
         log_probs.append(distribution[i].log_prob(elems))
     return torch.sum(torch.stack(log_probs), dim=0).T
+
+
+def log_probs_unprocessed(samples, distribution):
+    log_probs = []  # logprob of the element in the i-th position of each sample
+    for i, elems in enumerate(samples.T):
+        log_probs.append(distribution[i].log_prob(elems))
+    return torch.stack(log_probs).mean(1)
