@@ -11,15 +11,17 @@ import models
 NOISE_LEN = 128
 N_SAMPLES = 64
 LR = .0003
-ITERS = 1000
+ITERS = 2000
 LOSS_FUNC = 'L2'
 C = 40
 EVAL_INVERSE = True
 
-DEVICE = 'cuda:0'
+DEVICE = 'cpu'
 LOG_FILE = None
-N = 20
-INSTANCE = '../../instances/PFSP/tai20_5_8.fsp'
+# N = 20
+# INSTANCE = '../../instances/PFSP/tai20_5_8.fsp'
+N = 50
+INSTANCE = '../../instances/PFSP/tai50_5_8.fsp'
 
 
 dl = DataLogger({'instance': INSTANCE.split('/')[-1],
@@ -33,13 +35,14 @@ dl = DataLogger({'instance': INSTANCE.split('/')[-1],
                  'eval inverse': EVAL_INVERSE,
                  })
 
-problem = pypermu.problems.pfsp.Pfsp('../../instances/PFSP/tai20_5_8.fsp')
+problem = pypermu.problems.pfsp.Pfsp(INSTANCE)
 
 model = models.SimpleModel(NOISE_LEN, N, device=DEVICE)
 model.to(DEVICE)
 optimizer = Adam(model.parameters(), lr=LR)
 
 for it in range(ITERS):
+    print('DEVICE: ', DEVICE)
     # forward pass
     noise = torch.rand(NOISE_LEN).to(DEVICE)
     distribution = model.get_distribution(noise)
@@ -77,12 +80,12 @@ for it in range(ITERS):
     with torch.no_grad():
         logp = models.log_probs_unprocessed(samples, distribution)
         h_list = utils.entropy(distribution, reduction='none')
-        dl.push(
-            other={
-                'logp v0': logp[0], 'logp v10': logp[10], 'logp v17': logp[17],
-                'H v0': h_list[0], 'H v10': h_list[10], 'H v17': h_list[17],
-                'Pmax v0': distribution[0].probs.max(), 'Pmax v17': distribution[17].probs.max(),
-            })
+        # dl.push(
+        #     other={
+        #         'logp v0': logp[0], 'logp v10': logp[10], 'logp v17': logp[17],
+        #         'H v0': h_list[0], 'H v10': h_list[10], 'H v17': h_list[17],
+        #         'Pmax v0': distribution[0].probs.max(), 'Pmax v17': distribution[17].probs.max(),
+        #     })
         dl.push(other={'iteration': it,
                        'entropy': h.item(),
                        'loss': loss.item(),
@@ -93,27 +96,27 @@ for it in range(ITERS):
 if LOG_FILE != None:
     dl.to_csv(LOG_FILE, ITERS)
 
-ax1 = plt.subplot(2, 1, 1)
-ax1.plot(range(ITERS), dl.log['logp v0'], label='logp v0', alpha=.75)
-ax1.plot(range(ITERS), dl.log['logp v10'], label='logp v10', alpha=.75)
-ax1.plot(range(ITERS), dl.log['logp v17'], label='logp v17', alpha=.75)
-ax1.set_xlabel('Iterations')
-ax1.set_ylabel('Log probability')
-ax1.legend(loc=1)
-
-ax2 = ax1.twinx()
-ax2.set_ylabel('Entropy')
-ax2.plot(range(ITERS), dl.log['H v0'], '--', label='H v0', alpha=.75)
-ax2.plot(range(ITERS), dl.log['H v10'], '--', label='H v10', alpha=.75)
-ax2.plot(range(ITERS), dl.log['H v17'], '--', label='H v17', alpha=.75)
-ax2.legend(loc=4)
-
-plt.subplot(2, 1, 2)
-plt.plot(range(ITERS), dl.log['Pmax v0'], label='Pmax v0')
-plt.plot(range(ITERS), dl.log['Pmax v17'], label='Pmax v17')
-plt.legend()
-
-plt.title("Dissection of the loss function (loss function: "+LOSS_FUNC+")")
-plt.show()
+# ax1 = plt.subplot(2, 1, 1)
+# ax1.plot(range(ITERS), dl.log['logp v0'], label='logp v0', alpha=.75)
+# ax1.plot(range(ITERS), dl.log['logp v10'], label='logp v10', alpha=.75)
+# ax1.plot(range(ITERS), dl.log['logp v17'], label='logp v17', alpha=.75)
+# ax1.set_xlabel('Iterations')
+# ax1.set_ylabel('Log probability')
+# ax1.legend(loc=1)
+#
+# ax2 = ax1.twinx()
+# ax2.set_ylabel('Entropy')
+# ax2.plot(range(ITERS), dl.log['H v0'], '--', label='H v0', alpha=.75)
+# ax2.plot(range(ITERS), dl.log['H v10'], '--', label='H v10', alpha=.75)
+# ax2.plot(range(ITERS), dl.log['H v17'], '--', label='H v17', alpha=.75)
+# ax2.legend(loc=4)
+#
+# plt.subplot(2, 1, 2)
+# plt.plot(range(ITERS), dl.log['Pmax v0'], label='Pmax v0')
+# plt.plot(range(ITERS), dl.log['Pmax v17'], label='Pmax v17')
+# plt.legend()
+#
+# plt.title("Dissection of the loss function (loss function: "+LOSS_FUNC+")")
+# plt.show()
 
 dl.plot()
