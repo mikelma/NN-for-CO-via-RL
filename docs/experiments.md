@@ -176,7 +176,21 @@ In the other hand, as the magnitude of $log P(v_{17})$ is much smaller compared 
 This is clearly visualized in the lower part of Figure \ref{2020_11_28_1}, the maximum probability of the $P(v_{17})$ distribution remains almost constant from the beggining of the execution, while the maximum probability of $P(v_0)$ rapidly raises to 1.
 
 
-![In the uppper part of the Figure, the log probabilities and entropies related to different elements of the inversion vector are shown. In the lower plot, the maximum probability of $P(v_0)$ and $P(v_{17})$ distributions are shown. Finally, in this experiment the $L_3$ loss was used, other parameters remain unchanged. \label{2020_11_28_1}](img/2020_11_28_1.png){ width=110% }
+![In the uppper part of the Figure, the log probabilities and entropies related to different elements of the inversion vector are shown. In the lower plot, the maximum probability of $P(v_0)$ and $P(v_{17})$ distributions are shown. Finally, in this experiment the $L_3$ loss was used, other parameters remain unchanged. \label{2020_11_28_1}](img/2020_11_28_1.png){ width=100% }
+
+
 
 ## The inverse permutation
 
+In this section, insted of evaluating permutations generated from the sampled marina vectors, the inverse permutation of this permutations is going to be evaluated. 
+This has been shown to work better than the naive approach in other works.
+
+![Comparison of the model performance evaluating the sampled and the inverse of the sampled permutations. In this comparsion, the $L2$ loss function with $C=40$ was used. \label{2020_12_09}](img/2020_12_09.png){ width=100% }
+
+![L2 loss with $C=0$, (equivalent to L1 loss with mean fitness utility function), inverse permutation evaluation and borda enabled. \label{2020_12_08_2}](img/2020_12_08_2.png){ width=80% }
+
+
+![L3 loss, inverse permutation evaluation and borda disabled. \label{2020_12_08_3}](img/2020_12_08_3.png){ width=80% }
+
+
+![L3 loss, inverse permutation evaluation and borda enabled. \label{2020_12_08_1}](img/2020_12_08_1.png){ width=80% }

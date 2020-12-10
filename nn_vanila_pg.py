@@ -74,12 +74,18 @@ model.to(DEVICE)
 optimizer = Adam(model.parameters(), lr=LR)
 
 for it in range(ITERS):
+    print('DEVICE: ', DEVICE)
     # forward pass
     noise = torch.rand(NOISE_LEN).to(DEVICE)
     distribution = model.get_distribution(noise)
     samples = models.sample(distribution, N_SAMPLES)
 
     permus = [utils.marina2permu(v) for v in samples.cpu()]
+    if BORDA:
+        borda = np.array(pypermu.utils.borda(permus))
+        inv_borda = utils.permu2inverse(borda)
+        permus = [np.array(pypermu.utils.compose(p, inv_borda))
+                  for p in permus]
 
     if EVAL_INVERSE:
         # transform the permus list into a list of it's inverse permutations
