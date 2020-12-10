@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import pypermu
 import torch
 from torch.optim import Adam
@@ -7,21 +6,55 @@ from datalog import DataLogger
 import utils
 import loss_funcs
 import models
+import uuid
+import argparse
 
-NOISE_LEN = 128
-N_SAMPLES = 64
-LR = .0003
-ITERS = 4000
-LOSS_FUNC = 'L3'
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--instance-size', metavar='N', type=int, nargs=1,
+                    required=True, help='Size of the instance', choices=[20, 50])
+parser.add_argument('--instance', metavar='FILE', type=str, nargs=1,
+                    required=True, help='Path to the instance file')
+parser.add_argument('--log', metavar='FILE', type=str, nargs='?', default=False, const=True,
+                    required=False, help='If this falg is set, the logger will be stored as a CSV')
+args = parser.parse_args()
+
+N = args.instance_size[0]
+INSTANCE = args.instance[0]
+WRITE_LOG = False if args.log == False else True
+
+##############################
+#   Common hyperparameters   #
+##############################
+DEVICE = 'cpu'
+
+LOSS_FUNC = 'L2'
 C = 40
 EVAL_INVERSE = True
-BORDA = False
+##############################
+##############################
 
-DEVICE = 'cpu'
-LOG_FILE = None
-N = 20
-INSTANCE = '../../instances/PFSP/tai20_5_8.fsp'
+#----------------------------#
+#       params: N=20         #
+#----------------------------#
+if N == 20:
+    NOISE_LEN = 128
+    N_SAMPLES = 64
+    LR = .0003
+    ITERS = 1000
+    MODEL = models.SimpleModel
+#----------------------------#
 
+#----------------------------#
+#       params: N=50         #
+#----------------------------#
+if N == 50:
+    NOISE_LEN = 128
+    N_SAMPLES = 64
+    LR = .0003
+    ITERS = 1000
+    MODEL = models.SimpleModel
+#----------------------------#
 
 dl = DataLogger({'instance': INSTANCE.split('/')[-1],
                  'instance size': N,
@@ -32,11 +65,11 @@ dl = DataLogger({'instance': INSTANCE.split('/')[-1],
                  'C': C,
                  'loss function': LOSS_FUNC,
                  'eval inverse': EVAL_INVERSE,
+                 'model': MODEL.name,
                  })
 
 problem = pypermu.problems.pfsp.Pfsp(INSTANCE)
-
-model = models.SimpleModel(NOISE_LEN, N, device=DEVICE)
+model = MODEL(NOISE_LEN, N, device=DEVICE)
 model.to(DEVICE)
 optimizer = Adam(model.parameters(), lr=LR)
 
@@ -66,7 +99,8 @@ for it in range(ITERS):
 
     fitness_list -= fitness_list.mean()
 
-    h = utils.entropy(distribution)
+    if LOSS_FUNC in ['L2', 'L3']:
+        h = utils.entropy(distribution)
 
     optimizer.zero_grad()  # clear gradient buffers
 
@@ -88,10 +122,9 @@ for it in range(ITERS):
                        'entropy': h.item(),
                        'loss': loss.item(),
                        })
-        print(it+1, '/', ITERS, end=' ')
-        dl.print()
+        if not WRITE_LOG:
+            print(it+1, '/', ITERS, end=' ')
+            dl.print()
 
-if LOG_FILE != None:
-    dl.to_csv(LOG_FILE, ITERS)
-
-dl.plot()
+if WRITE_LOG:
+    dl.to_csv(str(uuid.uuid4())+'.csv', ITERS)
