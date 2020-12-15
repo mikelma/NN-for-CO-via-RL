@@ -28,6 +28,42 @@ class SimpleModel(torch.nn.Module):
         return distribs
 
 
+class SimpleModelBatched(torch.nn.Module):
+    name = 'SimpleModelBatched 1'
+
+    def __init__(self, D_in, N, device='cuda:0'):
+        super(SimpleModelBatched, self).__init__()
+        self.n = N  # length of the inversion vector to sample
+        self.dev = device
+
+        # create shared layer
+        self.l1 = torch.nn.Linear(D_in, 512)
+        # an output layer for each position in the solutions
+        self.out_layers = torch.nn.ModuleList(
+            [torch.nn.Linear(512, self.n-i) for i in range(N)])
+
+    def forward(self, x):
+        x = F.relu(self.l1(x))
+        out_list = [layer(x) for layer in self.out_layers]
+        return out_list
+
+    def get_samples_and_logp(self, x, n_samples):
+        logits = self.forward(x)
+        distribs = []
+        samples = []
+        logps = []
+        for l in logits:
+            d = Categorical(logits=l)
+            sample = d.sample([n_samples])
+            samples.append(sample)
+            distribs.append(d)
+            logps.append(d.log_prob(sample))
+
+        samples = torch.stack(samples, dim=0).T
+        logps = torch.stack(logps, dim=0).T.sum(2)
+        return distribs, samples, logps
+
+
 class MultiHeadModel(torch.nn.Module):
     name = 'MultiHeadModel 1'
 
@@ -62,14 +98,6 @@ class MultiHeadModel(torch.nn.Module):
         return policy, value
 
 
-def sample_batched(distribution, n_samples):
-    print('num samples: 5')
-    samples = []
-    for dist in distribution:
-        samples.append(dist.sample([5]))
-    return torch.stack(samples, dim=1).permute(2, 0, 1)
-
-
 def sample(distribution, n_samples):
     samples = []
     for dist in distribution:
@@ -90,4 +118,13 @@ def log_probs_unprocessed(samples, distribution):
     log_probs = []  # logprob of the element in the i-th position of each sample
     for i, elems in enumerate(samples.T):
         log_probs.append(distribution[i].log_prob(elems))
-    return torch.stack(log_probs).mean(1)
+    return torch.stack(log_probs).sum(1)
+
+
+def batched_entropy(distribs):
+    '''Given a batch of distributions, returns a batch of entropies.
+    '''
+    h = torch.zeros(distribs[0].batch_shape[0])
+    for d in distribs:
+        h += d.entropy()
+    return h
