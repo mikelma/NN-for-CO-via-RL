@@ -14,10 +14,9 @@ def marina2permu(marina):
 
 
 def entropy(distribution, reduction='sum'):
-    h = [d.entropy() for d in distribution]
-
+    h = torch.stack([d.entropy() for d in distribution])
     if reduction == 'sum':
-        return sum(h)
+        return h.sum()
     elif reduction == 'none':
         return h
 

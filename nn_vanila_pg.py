@@ -28,9 +28,10 @@ WRITE_LOG = False if args.log == False else True
 ##############################
 DEVICE = 'cpu'
 
-LOSS_FUNC = 'L2'
+LOSS_FUNC = 'L3'
 C = 40
 EVAL_INVERSE = True
+BORDA = False
 ##############################
 ##############################
 
@@ -41,7 +42,7 @@ if N == 20:
     NOISE_LEN = 128
     N_SAMPLES = 64
     LR = .0003
-    ITERS = 1000
+    ITERS = 2000
     MODEL = models.SimpleModel
 #----------------------------#
 
@@ -52,7 +53,7 @@ if N == 50:
     NOISE_LEN = 128
     N_SAMPLES = 64
     LR = .0003
-    ITERS = 1000
+    ITERS = 3000
     MODEL = models.SimpleModel
 #----------------------------#
 
@@ -81,6 +82,15 @@ for it in range(ITERS):
     samples = models.sample(distribution, N_SAMPLES)
 
     permus = [utils.marina2permu(v) for v in samples.cpu()]
+
+    ###########################
+    # m = np.zeros((N, N))
+    # for permu in permus:
+    #     for i, v in enumerate(permu):
+    #         m[i][v] += 1
+    # np.save('arrays/{}'.format(it), m)
+    ###########################
+
     if BORDA:
         borda = np.array(pypermu.utils.borda(permus))
         inv_borda = utils.permu2inverse(borda)
@@ -99,25 +109,32 @@ for it in range(ITERS):
 
     fitness_list -= fitness_list.mean()
 
-    if LOSS_FUNC in ['L2', 'L3']:
-        h = utils.entropy(distribution)
-
     optimizer.zero_grad()  # clear gradient buffers
 
     if LOSS_FUNC == 'L2':
         loss = loss_funcs.compute_l2(
-            samples, distribution, fitness_list, h, C)
+            samples, distribution, fitness_list, C)
+
     elif LOSS_FUNC == 'L3':
         loss = loss_funcs.compute_l3(samples, distribution,
-                                     fitness_list, h, N=len(distribution))
+                                     fitness_list, N=len(distribution))
+    elif LOSS_FUNC == 'L4':
+        loss = loss_funcs.compute_l4(
+            samples, distribution, fitness_list)
 
     loss.backward()  # update gradient buffers
     optimizer.step()  # update model's parameters
 
     # --------------------- logger --------------------- #
     with torch.no_grad():
-        logp = models.log_probs_unprocessed(samples, distribution)
-        h_list = utils.entropy(distribution, reduction='none')
+        h = utils.entropy(distribution, reduction='none')
+        # dl.push(other={
+        #     'h0':  h[0].item(),
+        #     'h10': h[10].item(),
+        #     'h17': h[17].item(),
+        # })
+        h = h.sum()
+        # h = utils.entropy(distribution, re)
         dl.push(other={'iteration': it,
                        'entropy': h.item(),
                        'loss': loss.item(),

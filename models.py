@@ -118,7 +118,7 @@ def log_probs_unprocessed(samples, distribution):
     log_probs = []  # logprob of the element in the i-th position of each sample
     for i, elems in enumerate(samples.T):
         log_probs.append(distribution[i].log_prob(elems))
-    return torch.stack(log_probs).sum(1)
+    return torch.stack(log_probs).T
 
 
 def batched_entropy(distribs):
