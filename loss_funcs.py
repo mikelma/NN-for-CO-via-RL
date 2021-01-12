@@ -8,12 +8,16 @@ def compute_l2(samples, distribution, fitness, C):
     '''L2 loss function. Note: when the C parameter is set to 0,
     this loss is equal to the L1 loss function.
     '''
+    fitness -= fitness.mean()  # mean based utility function
+
     h = utils.entropy(distribution)
     logp = models.log_probs(samples, distribution)
     return (logp * fitness).mean() - C*h
 
 
 def compute_l3(samples, distribution, fitness, N):
+    fitness -= fitness.mean()  # mean based utility function
+
     # calculate the maximum possible entropy of the distribution
     max_entropy = torch.tensor(
         sum([i*(1/i)*np.log(1/i) for i in range(1, N+1)]))
@@ -24,6 +28,8 @@ def compute_l3(samples, distribution, fitness, N):
 
 
 def compute_l4(samples, distribution, fitness):
+    fitness -= fitness.mean()  # mean based utility function
+
     h = utils.entropy(distribution, reduction='none')
     logp = models.log_probs_unprocessed(samples, distribution)
 
@@ -35,6 +41,8 @@ def compute_l4(samples, distribution, fitness):
 
 
 def compute_l5(samples, distribution, fitness, gamma):
+    fitness -= fitness.mean()  # mean based utility function
+
     gamma = torch.tensor(gamma)
     h = utils.entropy(distribution, reduction='none')
     n = h.size(0)

@@ -110,8 +110,6 @@ for it in range(ITERS):
 
     dl.push(fitness_list=fitness_list.cpu().numpy())
 
-    fitness_list -= fitness_list.mean()
-
     optimizer.zero_grad()  # clear gradient buffers
 
     if LOSS_FUNC == 'L2':
