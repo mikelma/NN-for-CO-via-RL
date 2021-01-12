@@ -180,17 +180,108 @@ This is clearly visualized in the lower part of Figure \ref{2020_11_28_1}, the m
 
 
 
-## The inverse permutation
+## The inverse permutation and borda
 
-In this section, insted of evaluating permutations generated from the sampled marina vectors, the inverse permutation of this permutations is going to be evaluated. 
-This has been shown to work better than the naive approach in other works.
+In this section, insted of evaluating permutations generated from the sampled marina vectors, the inverse permutation of this permutations is going to be evaluated.
+This has been shown to work better than the naive approach in other works. 
+In Figure \ref{2020_12_09}, the vanila and inverse permutation evaluation approaches are compared.
+The best achieved fitness value was recorded for 10 repetitions with each approach. 
 
-![Comparison of the model performance evaluating the sampled and the inverse of the sampled permutations. In this comparsion, the $L2$ loss function with $C=40$ was used. \label{2020_12_09}](img/2020_12_09.png){ width=100% }
+![Comparison of the model performance evaluating the sampled and the inverse of the sampled permutations. In this comparsion, the $L2$ loss function with $C=40$ was used. The gery line represents the performance of an EDA (CEC papar PFSP table).\label{2020_12_09}](img/2020_12_09.png){ width=100% }
+
+As can be seen, the model obtains significantly better when the inverse of the sampled permutation is evaluated instad of the raw sampled permutation. Moreover, in some instances the model outperforms the EDA's fitness (EDA's fitness was taken from our CEC paper). 
+Note that in this experiment the $L2 (C=40)$ loss was used, and better results can be reached using  the $L3$ loss, as shown in \label{2020_11_18_1}.
 
 ![L2 loss with $C=0$, (equivalent to L1 loss with mean fitness utility function), inverse permutation evaluation and borda enabled. \label{2020_12_08_2}](img/2020_12_08_2.png){ width=80% }
 
 
-![L3 loss, inverse permutation evaluation and borda disabled. \label{2020_12_08_3}](img/2020_12_08_3.png){ width=80% }
+![L3 loss, evaluation of inverse permutation enabled and borda disabled. \label{2020_12_08_3}](img/2020_12_08_3.png){ width=80% }
 
 
 ![L3 loss, inverse permutation evaluation and borda enabled. \label{2020_12_08_1}](img/2020_12_08_1.png){ width=80% }
+
+
+## Another loss function, trying to scale $logP(v_i)$
+
+In order to avoid the scaling problen shown in \ref{2020_11_28_1}, a new loss function is defined:
+
+$$
+L_4(\theta) = \mathbb{E}_{v\sim \theta} \left[ U(v)\sum_{i}^{N} \frac{\log P_i(v(i))}{H(P_i)} \right]
+$$
+
+In order to see if the log caling problem was fixed with the $L4$ loss function, Figure \ref{2020_12_19_1} was generated. In this Figure the entropy values for all $N$ distributions of the model under $L3$ and $L4$ loss functions were plot.
+In the upper plots, the entropies under the $L3$ loss are show, as can be seen the entropies of the first distributions are the ones which fall first (especially when diabling the inverse permutation evaluation).
+However, under the $L4$ loss function, entropy values for more or less together. Moreover, when the distribution seems fully converged, soimetimes the entopy of a distribution raises  for some iterations to later converge again.
+
+![Entropy value comparison for $L3$ and $L4$ losses.\label{2020_12_19_1}](img/2020_12_19_1.png){ width=100% }
+
+
+In Figure \ref{2020_12_15_1} the fitness and entropy values for a single execution of the model under the new loss function is shown.
+Although the obtained fitness is quite good, the entropy of the model shows a more premature convergency compared to the model under other loss functions. 
+
+![Single execution of the model uner $L4$ loss function.\label{2020_12_15_1}](img/2020_12_15_1.png){ width=90% }
+
+
+In order to better compare this behaviors, the model was run 3 times under the $L3$ and $L4$ loss function and Figure \ref{2020_12_15_2} was generated. As can be seen in the figure, the model converges much faster under the $L4$ loss function than when under the $L3$ loss.
+
+The motivation of the $L4$ loss function was only to scale the $logP(v_i)$ terms of the loss function, however, it has no mechanism to counteract premature convergency, on the contrary of the $L3$ and $L2$ functions that have different mechanisms to avoid this problem.
+
+![Loss function comparison. 3 repetitions for each loss function.\label{2020_12_15_2}](img/2020_12_15_2.png){ width=90% }
+
+
+In order to avoid the premature convergency problem, the $L4$ loss is provided with the same mechanism as the $L3$ loss. The loss function will be weighted by the scaled entropy of the model:
+
+$$
+L_5(\theta) = \mathbb{E}_{v\sim\theta} \left[ U(v)\sum_{i}^{N-1}\frac{H(P_i)}{\max{H(P_i)}} \sum_i^{N-1}\frac{\log P_i(v(i))}{H(P_i)} \right]
+$$
+
+In Figures \ref{2020_12_20_1} and \ref{2020_12_20_2} training metrics under the $L5$ loss are shown, evaluatng the sampled permutation and evaluating the inverse permutation respectively.
+
+![Training metrics for a single execution under the $L5$ loss function. Note that the inverse permutation evaluation was disabled for this execution.\label{2020_12_20_1}](img/2020_12_20_1.png){ width=100% }
+
+![Training metrics for a single execution under the $L5$ loss function (inverse permutation evaluation enabled).\label{2020_12_20_2}](img/2020_12_20_2.png){ width=100% }
+
+As can bee seen in the entropy plots of both figures, the entropy of the model never fully converges under the $L5$ loss. This behaviour can be better observed in Figure \ref{2020_12_20_3}
+
+![Scaled entropy for all N distributions of the model under the $L5$ loss function, with and without the inverse permutation evaluation. \label{2020_12_20_3}](img/2020_12_20_3.png){ width=100% }
+
+With the $L5$ loss function the $logP$ scalation problem of the $L3$ loss and the premature convergency problem of $L4$ seem to be fixed. 
+However, a new problem araises, as can be seen in Figures \ref{2020_12_20_1}, \ref{2020_12_20_2} and \label{2020_12_21_1} the behaviour of the $L5$ loss function is highly unstable.
+
+![$L5$ loss function values for a singole execution. \label{2020_12_21_1}](img/2020_12_21_1.png){ width=100% }
+
+In order to have a more detailed view of what the values inside the loss function look like, Figure \label{2020_12_21_2} is presented, where the differnt terms of the loss function are plotted and the loss value is clipped between $-100$ and 100.
+
+$$
+L_5(\theta) = \mathbb{E}_{v\sim\theta} \left[ U(v) * \text{convergency} * \text{scaled}\log P \right]
+$$
+$$
+\text{convergency} = \sum_{i}^{N-1}\frac{H(P_i)}{\max{H(P_i)}}
+$$
+$$
+\text{scaled}\log P = \sum_i^{N-1}\frac{\log P_i(v(i))}{H(P_i)}
+$$
+
+![$L5$ loss function values for a single execution. \label{2020_12_21_2}](img/2020_12_21_2.png){ width=100% }
+
+As can be seen in Figure \label{2020_12_21_2} the scaled $l\log P$ term of the loss function is the term that makes the entire loss function unstable.
+
+This has sense, as the entropy of the distributions starts to fall, the value of the scaled $\log P$ will explode to $-\infty$.
+
+To fix this issue the $\gamma$ parameter was added to the $L5$. Where gamma is a value low value to prevent the exploding loss function.
+Re-definition of the $L_{5}$ loss function:
+
+$$
+L_{5}(\theta) = \mathbb{E}_{V\sim\theta} \left[ U(V)\sum_{i=1}^{n-1}\frac{H(V_i)}{Z_i^{n}} \sum_{i=1}^{n-1}\frac{\log P(V_i=r_i)}{H(V_i)+\gamma} \right], Z_i^{n}=-\log\frac{1}{n-i}
+$$
+
+$$
+L_{5}(\theta) \approx \frac{\rho}{m}\sum_{j=1}^{m} \left( U(V^j)\sum_{i=1}^{n-1}\frac{\log P(V_i=r_i)}{H(V_i)+\gamma} \right), \rho = \sum_{i=1}^{n-1}\frac{H(V_i)}{Z_i^{n}} 
+$$
+
+Note that when $\gamma = 0$ the new loss function is equivalent to the old $L5$ loss.
+
+![$L5$ loss function terms ($\gamma=0.02$). \label{2020_12_22_1}](img/2020_12_22_1.png){ width=120% }
+
+
+[comment]: ![\label{2020_12_21_3}](img/2020_12_21_3.png){ width=120% }
