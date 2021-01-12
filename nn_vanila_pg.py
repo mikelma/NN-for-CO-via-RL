@@ -28,8 +28,9 @@ WRITE_LOG = False if args.log == False else True
 ##############################
 DEVICE = 'cpu'
 
-LOSS_FUNC = 'L3'
+LOSS_FUNC = 'L5'
 C = 40
+GAMMA = .02
 EVAL_INVERSE = True
 BORDA = False
 ##############################
@@ -67,6 +68,7 @@ dl = DataLogger({'instance': INSTANCE.split('/')[-1],
                  'loss function': LOSS_FUNC,
                  'eval inverse': EVAL_INVERSE,
                  'model': MODEL.name,
+                 'gamma': GAMMA,
                  })
 
 problem = pypermu.problems.pfsp.Pfsp(INSTANCE)
@@ -84,6 +86,7 @@ for it in range(ITERS):
     permus = [utils.marina2permu(v) for v in samples.cpu()]
 
     ###########################
+    # print('distrib array recording')
     # m = np.zeros((N, N))
     # for permu in permus:
     #     for i, v in enumerate(permu):
@@ -121,6 +124,9 @@ for it in range(ITERS):
     elif LOSS_FUNC == 'L4':
         loss = loss_funcs.compute_l4(
             samples, distribution, fitness_list)
+    elif LOSS_FUNC == 'L5':
+        loss, convergency, scaled_logps = loss_funcs.compute_l5(
+            samples, distribution, fitness_list, gamma=GAMMA)
 
     loss.backward()  # update gradient buffers
     optimizer.step()  # update model's parameters
@@ -128,16 +134,18 @@ for it in range(ITERS):
     # --------------------- logger --------------------- #
     with torch.no_grad():
         h = utils.entropy(distribution, reduction='none')
-        # dl.push(other={
-        #     'h0':  h[0].item(),
-        #     'h10': h[10].item(),
-        #     'h17': h[17].item(),
-        # })
+        if WRITE_LOG:
+            other = {}
+            print('Recording entropies')
+            for i in range(N):
+                other['h'+str(i)] = h[i].item()
+            dl.push(other=other)
         h = h.sum()
-        # h = utils.entropy(distribution, re)
         dl.push(other={'iteration': it,
                        'entropy': h.item(),
                        'loss': loss.item(),
+                       'convergency': convergency.item(),
+                       'scaled logps': scaled_logps.item()
                        })
         if not WRITE_LOG:
             print(it+1, '/', ITERS, end=' ')
