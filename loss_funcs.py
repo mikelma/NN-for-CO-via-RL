@@ -58,3 +58,21 @@ def compute_l5(samples, distribution, fitness, gamma):
     scaled_logps = (logp[:, :-1]/(h[:-1]+gamma)).sum(1)
 
     return (scaled_logps * fitness * convergency).mean(), convergency, scaled_logps.mean()
+
+
+def compute_l6(samples, distribution, fitness):
+    fitness = fitness - fitness.mean()
+
+    # h = utils.entropy(distribution, reduction='none')
+    # n = h.size(0)
+    # max_h = torch.tensor([-np.log(1/i) for i in reversed(range(1, n+1))])
+    # # do not take into account H(V_n), as it is always 0
+    # norm_h = h[:-1] / max_h[:-1]
+    # # sum normalized entropies and normalize the sum
+    # convergency = norm_h.mean()
+
+    # get logps and entropy
+    logp = models.log_probs(samples, distribution)
+
+    # return -(logp * fitness).mean()*convergency, convergency
+    return (logp * fitness).mean(), torch.tensor(0)
