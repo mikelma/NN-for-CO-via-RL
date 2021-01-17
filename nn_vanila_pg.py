@@ -69,15 +69,6 @@ for it in range(config['max iters']):
     permus = pypermu.utils.transformations.marina2permu_batched(
         samples.cpu().numpy())
 
-    ###########################
-    # print('distrib array recording')
-    # m = np.zeros((N, N))
-    # for permu in permus:
-    #     for i, v in enumerate(permu):
-    #         m[i][v] += 1
-    # np.save('arrays/{}'.format(it), m)
-    ###########################
-
     if config['borda']:
         borda = np.array(pypermu.utils.borda(permus))
         inv_borda = utils.permu2inverse(borda)
@@ -86,7 +77,7 @@ for it in range(config['max iters']):
 
     if config['eval inverse']:
         # transform the permus list into a list of it's inverse permutations
-        permus = [utils.permu2inverse(permu) for permu in permus]
+        permus = pypermu.utils.transformations.permu2inverse_batched(permus)
 
     # evaluate the fitness of the sampled solutions
     fitness_list = torch.tensor(
@@ -97,7 +88,7 @@ for it in range(config['max iters']):
         wandb.log({
             'min fitness': fitness_list.min().item(),
             'mean fitness': fitness_list.mean().item(),
-        })
+        }, step=it)
 
     if WRITE_LOG:
         dl.push(fitness_list=fitness_list.cpu().numpy())
@@ -130,6 +121,7 @@ for it in range(config['max iters']):
     # --------------------- logger --------------------- #
     if WRITE_LOG or WANDB_ENABLE:
         with torch.no_grad():
+
             print('Recording entropies')
             h = utils.entropy(distribution, reduction='none')
             entropies = {}
@@ -143,7 +135,16 @@ for it in range(config['max iters']):
             if WRITE_LOG:
                 dl.push(other=merged)
             if WANDB_ENABLE:
-                wandb.log(merged)
+                ###########################
+                # print('distrib array recording')
+                # m = np.zeros((N, N))
+                # for permu in permus:
+                #     for i, v in enumerate(permu):
+                #         m[i][v] += 1
+                # # np.save('arrays/{}'.format(it), m)
+                # wandb.log({'permu distrib': wandb.Image(m)}, step=it)
+                ###########################
+                wandb.log(merged, step=it)
     else:
         print(it+1, '/', config['max iters'])
 

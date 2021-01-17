@@ -13,9 +13,9 @@ INSTANCE = '../../instances/PFSP/tai20_5_8.fsp'
 N = 20
 DEVICE = 'cpu'
 NOISE_LEN = 128
-LR = .0003
+LR = .00003
 N_SAMPLES = 64
-BATCH_SIZE = 32
+BATCH_SIZE = 128
 ITERS = 1000
 C = 40
 
@@ -34,6 +34,9 @@ for it in range(ITERS):
 
     permus = [pypermu.utils.transformations.marina2permu_batched(
         b) for b in samples.cpu().numpy()]
+
+    permus = [pypermu.utils.transformations.permu2inverse_batched(
+        batch) for batch in permus]
 
     fitness_list = torch.tensor([problem.evaluate(batch)
                                  for batch in permus]).float().to(DEVICE)
