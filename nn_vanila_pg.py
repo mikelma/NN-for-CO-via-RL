@@ -33,7 +33,7 @@ config = {'instance': instance_path.split('/')[-1],
           'learning rate': .0003,
           'noise length': 128,
           'C': 40,
-          'loss function': 'L6',
+          'loss function': 'L1',
           'eval inverse': True,
           'borda': False,
           'model': models.SimpleModel,
@@ -96,6 +96,9 @@ for it in range(config['max iters']):
 
     optimizer.zero_grad()  # clear gradient buffers
 
+    if config['loss function'] == 'L1':
+        loss = loss_funcs.compute_l1(samples, distribution,
+                                     fitness_list)
     if config['loss function'] == 'L2':
         loss = loss_funcs.compute_l2(
             samples, distribution, fitness_list, config['C'])
@@ -111,10 +114,6 @@ for it in range(config['max iters']):
         loss, convergency, scaled_logps = loss_funcs.compute_l5(
             samples, distribution, fitness_list, gamma=config['gamma'])
 
-    elif config['loss function'] == 'L6':
-        loss, convergency = loss_funcs.compute_l6(samples, distribution,
-                                                  fitness_list)
-
     loss.backward()  # update gradient buffers
     optimizer.step()  # update model's parameters
 
@@ -128,8 +127,9 @@ for it in range(config['max iters']):
             for i in range(config['instance size']):
                 entropies['h'+str(i)] = h[i].item()
 
-            data = {'iteration': it, 'entropy': h.sum().item(
-            ), 'loss': loss.item(), 'convergency': convergency.item()}
+            data = {'iteration': it,
+                    'entropy': h.sum().item(),
+                    'loss': loss.item()}
             merged = {**entropies, **data}
 
             if WRITE_LOG:

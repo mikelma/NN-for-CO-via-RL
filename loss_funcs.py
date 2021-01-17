@@ -60,7 +60,7 @@ def compute_l5(samples, distribution, fitness, gamma):
     return (scaled_logps * fitness * convergency).mean(), convergency, scaled_logps.mean()
 
 
-def compute_l6(samples, distribution, fitness):
+def compute_l1(samples, distribution, fitness):
     fitness = fitness - fitness.mean()
 
     # h = utils.entropy(distribution, reduction='none')
@@ -75,4 +75,4 @@ def compute_l6(samples, distribution, fitness):
     logp = models.log_probs(samples, distribution)
 
     # return -(logp * fitness).mean()*convergency, convergency
-    return (logp * fitness).mean(), torch.as_tensor(0)
+    return (logp * fitness).mean()
