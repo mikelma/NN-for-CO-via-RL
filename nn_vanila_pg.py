@@ -80,7 +80,7 @@ for it in range(config['max iters']):
         permus = pypermu.utils.transformations.permu2inverse_batched(permus)
 
     # evaluate the fitness of the sampled solutions
-    fitness_list = torch.tensor(
+    fitness_list = torch.as_tensor(
         problem.evaluate(permus)).float().to(DEVICE)
 
     #################################################

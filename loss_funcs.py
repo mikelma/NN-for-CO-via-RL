@@ -19,7 +19,7 @@ def compute_l3(samples, distribution, fitness, N):
     fitness -= fitness.mean()  # mean based utility function
 
     # calculate the maximum possible entropy of the distribution
-    max_entropy = torch.tensor(
+    max_entropy = torch.as_tensor(
         sum([i*(1/i)*np.log(1/i) for i in range(1, N+1)]))
     # get logps and entropy
     logp = models.log_probs(samples, distribution)
@@ -43,11 +43,11 @@ def compute_l4(samples, distribution, fitness):
 def compute_l5(samples, distribution, fitness, gamma):
     fitness -= fitness.mean()  # mean based utility function
 
-    gamma = torch.tensor(gamma)
+    gamma = torch.as_tensor(gamma)
     h = utils.entropy(distribution, reduction='none')
     n = h.size(0)
 
-    max_h = torch.tensor([-np.log(1/i) for i in reversed(range(1, n+1))])
+    max_h = torch.as_tensor([-np.log(1/i) for i in reversed(range(1, n+1))])
     convergency = h[:-1] / max_h[:-1]
     convergency = convergency[:-1].sum()
 
@@ -75,4 +75,4 @@ def compute_l6(samples, distribution, fitness):
     logp = models.log_probs(samples, distribution)
 
     # return -(logp * fitness).mean()*convergency, convergency
-    return (logp * fitness).mean(), torch.tensor(0)
+    return (logp * fitness).mean(), torch.as_tensor(0)

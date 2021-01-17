@@ -13,7 +13,7 @@ INSTANCE = '../../instances/PFSP/tai20_5_8.fsp'
 N = 20
 DEVICE = 'cpu'
 NOISE_LEN = 128
-LR = .00003
+LR = .0003
 N_SAMPLES = 64
 BATCH_SIZE = 128
 ITERS = 1000
@@ -32,14 +32,17 @@ for it in range(ITERS):
 
     distribution, samples, logp = model.get_samples_and_logp(noise, N_SAMPLES)
 
+    # convert sampled marina vectors to their permutation representation
     permus = [pypermu.utils.transformations.marina2permu_batched(
         b) for b in samples.cpu().numpy()]
 
+    # calculate the inverse of the permutations
     permus = [pypermu.utils.transformations.permu2inverse_batched(
         batch) for batch in permus]
 
-    fitness_list = torch.tensor([problem.evaluate(batch)
-                                 for batch in permus]).float().to(DEVICE)
+    # evaluate the inversed permutations
+    fitness_list = torch.as_tensor([problem.evaluate(batch)
+                                    for batch in permus]).float().to(DEVICE)
 
     ############
     min_fitness_log.append(fitness_list.min().item())
