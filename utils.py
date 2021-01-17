@@ -3,7 +3,6 @@ import numpy as np
 
 
 def marina2permu(marina):
-    # TODO: Implement in rust for a faster func
     n = len(marina)
     e = list(range(n))
     permu = np.zeros(n, dtype=np.int64)
