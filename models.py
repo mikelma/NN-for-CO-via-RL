@@ -121,10 +121,10 @@ def log_probs_unprocessed(samples, distribution):
     return torch.stack(log_probs).T
 
 
-def batched_entropy(distribs):
-    '''Given a batch of distributions, returns a batch of entropies.
+def batched_entropies(distribs):
+    '''Given a batch of distributions, returns a batched entropies of all N distributions.
+    In other words, returns entriopy tendsor of shape: (batch num., num. distribs.).
     '''
-    h = torch.zeros(distribs[0].batch_shape[0])
-    for d in distribs:
-        h += d.entropy()
+    # h = (batch, entropy of each distribution of the batch)
+    h = torch.stack([d.entropy() for d in distribs]).T
     return h
