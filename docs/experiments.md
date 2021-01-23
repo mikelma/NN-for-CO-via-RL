@@ -276,7 +276,7 @@ L_{5}(\theta) = \mathbb{E}_{V\sim\theta} \left[ U(V)\sum_{i=1}^{n-1}\frac{H(V_i)
 $$
 
 $$
-L_{5}(\theta) \approx \frac{\rho}{m}\sum_{j=1}^{m} \left( U(V^j)\sum_{i=1}^{n-1}\frac{\log P(V_i=r_i)}{H(V_i)+\gamma} \right), \rho = \sum_{i=1}^{n-1}\frac{H(V_i)}{Z_i^{n}} 			
+L_{5}(\theta) \approx \frac{\rho}{m}\sum_{j=1}^{m} \left( U(V^j)\sum_{i=1}^{n-1}\frac{\log P(V_i=r_i)}{H(V_i)+\gamma} \right), \rho = \sum_{i=1}^{n-1}\frac{H(V_i)}{Z_i^{n}} 				
 $$
 
 Note that when $\gamma = 0$ the new loss function is equivalent to the old $L5$ loss.
