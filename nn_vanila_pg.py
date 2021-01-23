@@ -7,38 +7,24 @@ import loss_funcs
 import models
 import os
 import uuid
-import argparse
 
-
-parser = argparse.ArgumentParser()
-parser.add_argument('--instance-size', metavar='N', type=int, nargs=1,
-                    required=True, help='Size of the instance', choices=[20, 50])
-parser.add_argument('--instance', metavar='FILE', type=str, nargs=1,
-                    required=True, help='Path to the instance file')
-parser.add_argument('--log', type=str, nargs='?', default=False, const=True,
-                    required=False, help='If this falg is set, the logger will be stored as a CSV')
-parser.add_argument('--wandb', type=str, nargs='?', default=False, const=True,
-                    required=False, help='If this falg is provided, weight and biases will be used to track the experiment')
-args = parser.parse_args()
-
-WRITE_LOG = False if args.log == False else True
-WANDB_ENABLE = False if args.wandb == False else True
+# --------------------- configuration --------------------- #
+WANDB_NAME = 't1-batch-exp'
+INST_PATH, INST_SIZE, WRITE_LOG, WANDB_ENABLE = utils.arg_parse()
 DEVICE = 'cpu'
-instance_path = args.instance[0]
 
-config = {'instance': instance_path.split('/')[-1],
-          'instance size': args.instance_size[0],
+config = {'instance': INST_PATH.split('/')[-1],
+          'instance size': INST_SIZE,
           'max iters': 1000,
           'n samples': 64,
           'learning rate': .0003,
           'noise length': 128,
-          'C': 40,
           'loss function': 'L1',
           'eval inverse': True,
-          'borda': False,
           'model': models.SimpleModel,
-          'gamma': .02,
+          'batch size': 1,  # NOTE: here batch size is always 1
           }
+# --------------------------------------------------------- #
 
 if WRITE_LOG:
     from datalog import DataLogger
@@ -46,10 +32,10 @@ if WRITE_LOG:
 
 if WANDB_ENABLE:
     import wandb
-    wandb.init('NN-PG-loss-test', config=config)
+    wandb.init(WANDB_NAME, config=config)
 
 # initializations
-problem = pypermu.problems.pfsp.Pfsp(instance_path)
+problem = pypermu.problems.pfsp.Pfsp(INST_PATH)
 
 model = config['model'](config['noise length'],
                         config['instance size'], device=DEVICE)
@@ -57,7 +43,7 @@ model.to(DEVICE)
 optimizer = Adam(model.parameters(), lr=config['learning rate'])
 
 if WANDB_ENABLE:
-    wandb.watch(model, loss_funcs.compute_l6, log='all', log_freq=10)
+    wandb.watch(model, log='all', log_freq=10)
 
 for it in range(config['max iters']):
     # forward pass
@@ -69,12 +55,6 @@ for it in range(config['max iters']):
     permus = pypermu.utils.transformations.marina2permu_batched(
         samples.cpu().numpy())
 
-    if config['borda']:
-        borda = np.array(pypermu.utils.borda(permus))
-        inv_borda = utils.permu2inverse(borda)
-        permus = [np.array(pypermu.utils.compose(p, inv_borda))
-                  for p in permus]
-
     if config['eval inverse']:
         # transform the permus list into a list of it's inverse permutations
         permus = pypermu.utils.transformations.permu2inverse_batched(permus)
@@ -83,7 +63,7 @@ for it in range(config['max iters']):
     fitness_list = torch.as_tensor(
         problem.evaluate(permus)).float().to(DEVICE)
 
-    #################################################
+    # --------------------- logger --------------------- #
     if WANDB_ENABLE:
         wandb.log({
             'min fitness': fitness_list.min().item(),
@@ -92,28 +72,27 @@ for it in range(config['max iters']):
 
     if WRITE_LOG:
         dl.push(fitness_list=fitness_list.cpu().numpy())
-    #################################################
-
-    optimizer.zero_grad()  # clear gradient buffers
+    # -------------------------------------------------- #
 
     if config['loss function'] == 'L1':
         loss = loss_funcs.compute_l1(samples, distribution,
                                      fitness_list)
-    if config['loss function'] == 'L2':
-        loss = loss_funcs.compute_l2(
-            samples, distribution, fitness_list, config['C'])
+    # if config['loss function'] == 'L2':
+    #    loss = loss_funcs.compute_l2(
+    #        samples, distribution, fitness_list, config['C'])
 
-    elif config['loss function'] == 'L3':
-        loss = loss_funcs.compute_l3(samples, distribution,
-                                     fitness_list, N=len(distribution))
-    elif config['loss function'] == 'L4':
-        loss = loss_funcs.compute_l4(
-            samples, distribution, fitness_list)
+    # elif config['loss function'] == 'L3':
+    #    loss = loss_funcs.compute_l3(samples, distribution,
+    #                                 fitness_list, N=len(distribution))
+    # elif config['loss function'] == 'L4':
+    #    loss = loss_funcs.compute_l4(
+    #        samples, distribution, fitness_list)
 
-    elif config['loss function'] == 'L5':
-        loss, convergency, scaled_logps = loss_funcs.compute_l5(
-            samples, distribution, fitness_list, gamma=config['gamma'])
+    # elif config['loss function'] == 'L5':
+    #    loss, convergency, scaled_logps = loss_funcs.compute_l5(
+    #        samples, distribution, fitness_list, gamma=config['gamma'])
 
+    optimizer.zero_grad()  # clear gradient buffers
     loss.backward()  # update gradient buffers
     optimizer.step()  # update model's parameters
 
@@ -127,15 +106,13 @@ for it in range(config['max iters']):
             for i in range(config['instance size']):
                 entropies['h'+str(i)] = h[i].item()
 
-            data = {'iteration': it,
-                    'entropy': h.sum().item(),
+            data = {'entropy': h.sum().item(),
                     'loss': loss.item()}
             merged = {**entropies, **data}
 
             if WRITE_LOG:
                 dl.push(other=merged)
             if WANDB_ENABLE:
-                ###########################
                 # print('distrib array recording')
                 # m = np.zeros((N, N))
                 # for permu in permus:
@@ -143,7 +120,6 @@ for it in range(config['max iters']):
                 #         m[i][v] += 1
                 # # np.save('arrays/{}'.format(it), m)
                 # wandb.log({'permu distrib': wandb.Image(m)}, step=it)
-                ###########################
                 wandb.log(merged, step=it)
     else:
         print(it+1, '/', config['max iters'])

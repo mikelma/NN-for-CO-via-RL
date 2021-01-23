@@ -1,5 +1,23 @@
+import argparse
 import torch
 import numpy as np
+
+
+def arg_parse():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--instance-size', metavar='N', type=int, nargs=1,
+                        required=True, help='Size of the instance', choices=[20, 50])
+    parser.add_argument('--instance', metavar='FILE', type=str, nargs=1,
+                        required=True, help='Path to the instance file')
+    parser.add_argument('--log', type=str, nargs='?', default=False, const=True,
+                        required=False, help='If this falg is set, the logger will be stored as a CSV')
+    parser.add_argument('--wandb', type=str, nargs='?', default=False, const=True,
+                        required=False, help='If this falg is provided, weight and biases will be used to track the experiment')
+    args = parser.parse_args()
+
+    write_log = False if args.log == False else True
+    wandb_enable = False if args.wandb == False else True
+    return args.instance[0], args.instance_size[0], write_log, wandb_enable
 
 
 def marina2permu(marina):
