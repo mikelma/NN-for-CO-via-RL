@@ -54,13 +54,14 @@ class SimpleModelBatched(torch.nn.Module):
         logps = []
         for l in logits:
             d = Categorical(logits=l)
-            sample = d.sample([n_samples])
+            sample = d.sample((n_samples,))
             samples.append(sample)
             distribs.append(d)
             logps.append(d.log_prob(sample))
 
         samples = torch.stack(samples, dim=0).T
-        logps = torch.stack(logps, dim=0).T.sum(2)
+        #logps = torch.stack(logps, dim=0).T.sum(2)
+        logps = torch.stack(logps, dim=0).T
         return distribs, samples, logps
 
 
