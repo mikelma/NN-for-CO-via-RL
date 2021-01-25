@@ -2,32 +2,42 @@ import models
 import torch
 import utils
 from torch.optim import Adam
-from datalog import DataLogger
+#from datalog import DataLogger
 import uuid
 import pypermu
 from loss_funcs_batched import loss_l1, loss_l5
+import numpy as np
 
 
 # --------------------- configuration --------------------- #
 LOG_DIR = './'
 WANDB_NAME = 't2-l5-gamma'
+N_SAMPLES = 64
 INST_PATH, INST_SIZE, WRITE_LOG, WANDB_ENABLE = utils.arg_parse()
+
+a = np.array([2**i for i in range(10)])
+batch_size = a[np.where(INST_SIZE < a)[0][0]]
+max_evals = 1000*INST_SIZE**2
+max_iters = int(max_evals/(batch_size*N_SAMPLES))
+
+#DEVICE = 'cuda:0'
 DEVICE = 'cpu'
 config = {'instance': INST_PATH.split('/')[-1],
           'instance size': INST_SIZE,
-          'max iters': 1000,
-          'n samples': 64,
+          'max iters': max_iters,
+          'n samples': N_SAMPLES,
           'learning rate': .0003,
           'noise length': 128,
           'loss function': 'L5',
           'eval inverse': True,
           'model': models.SimpleModelBatched,
-          'batch size': 1,
+          'batch size': batch_size,
           'gamma': 1,
           }
-if WRITE_LOG:
-    from datalog import DataLogger
-    dl = DataLogger(config)
+
+# if WRITE_LOG:
+#    from datalog import DataLogger
+#    dl = DataLogger(config)
 
 if WANDB_ENABLE:
     import wandb
@@ -63,17 +73,17 @@ for it in range(config['max iters']):
                                     for batch in permus]).float().to(DEVICE)
 
     # --------------------- logger --------------------- #
+    min_f = fitness_list.min().item()
+    best_fitness = best_fitness if min_f >= best_fitness else min_f
     if WANDB_ENABLE:
-        min_f = fitness_list.min().item()
-        best_fitness = best_fitness if min_f >= best_fitness else min_f
         wandb.log({
             'min fitness': min_f,
             'mean fitness': fitness_list.mean().item(),
             'best fitness': best_fitness,
         }, step=it)
 
-    if WRITE_LOG:
-        dl.push(fitness_list=fitness_list.cpu().numpy())
+    # if WRITE_LOG:
+    #    dl.push(fitness_list=fitness_list.cpu().numpy())
     # -------------------------------------------------- #
 
     if config['loss function'] == 'L1':
@@ -86,7 +96,8 @@ for it in range(config['max iters']):
     loss.backward()  # update gradient buffers
     optimizer.step()  # update model's parameters
 
-    if WRITE_LOG or WANDB_ENABLE:
+    # if WRITE_LOG or WANDB_ENABLE:
+    if WANDB_ENABLE:
         with torch.no_grad():
             # entropy of all N distributions (averaged across batches)
             h = models.batched_entropies(distribution).mean(0)
@@ -98,16 +109,22 @@ for it in range(config['max iters']):
                     'loss': loss.item()}
             merged = {**entropies, **data}
 
-            if WRITE_LOG:
-                dl.push(other=merged)
+            # if WRITE_LOG:
+            #    dl.push(other=merged)
             if WANDB_ENABLE:
                 wandb.log(merged, step=it)
-    else:
-        print(it+1, '/', config['max iters'])
+    # else:
+    #    print(it+1, '/', config['max iters'])
 
 if WANDB_ENABLE:
     torch.onnx.export(model, noise, "model.onnx")
     wandb.save("model.onnx")
 
 if WRITE_LOG:
-    dl.to_csv(LOG_DIR+str(uuid.uuid4())+'.csv', config['max iters'])
+    with open(str(uuid.uuid4())+'.csv', 'w') as f:
+        f.writelines([
+            ','.join([key for key in config.keys()]+['best fitness'])+'\n',
+            ','.join([str(config[key])
+                      for key in config.keys()]+[str(best_fitness)])+'\n'])
+
+    # dl.to_csv(LOG_DIR+str(uuid.uuid4())+'.csv', config['max iters'])

@@ -6,7 +6,7 @@ import numpy as np
 def arg_parse():
     parser = argparse.ArgumentParser()
     parser.add_argument('--instance-size', metavar='N', type=int, nargs=1,
-                        required=True, help='Size of the instance', choices=[20, 50])
+                        required=True, help='Size of the instance', choices=[20, 50, 100])
     parser.add_argument('--instance', metavar='FILE', type=str, nargs=1,
                         required=True, help='Path to the instance file')
     parser.add_argument('--log', type=str, nargs='?', default=False, const=True,
