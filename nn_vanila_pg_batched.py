@@ -7,6 +7,7 @@ import uuid
 import pypermu
 from loss_funcs_batched import loss_l1, loss_l5
 import numpy as np
+import os
 
 
 # --------------------- configuration --------------------- #
@@ -20,8 +21,10 @@ batch_size = a[np.where(INST_SIZE < a)[0][0]]
 max_evals = 1000*INST_SIZE**2
 max_iters = int(max_evals/(batch_size*N_SAMPLES))
 
-#DEVICE = 'cuda:0'
-DEVICE = 'cpu'
+# choose device depending if the script is run in my host machine
+# or remotely in the cluster
+DEVICE = 'cuda:0' if os.uname()[1] == 'marvin' else 'cpu'
+
 config = {'instance': INST_PATH.split('/')[-1],
           'instance size': INST_SIZE,
           'max iters': max_iters,
@@ -90,7 +93,8 @@ for it in range(config['max iters']):
         loss = loss_l1(fitness_list, logps)
 
     elif config['loss function'] == 'L5':
-        loss = loss_l5(fitness_list, logps, distribution, config['gamma'])
+        loss = loss_l5(fitness_list, logps, distribution,
+                       config['gamma'], device=DEVICE)
 
     optimizer.zero_grad()  # clear gradient buffers
     loss.backward()  # update gradient buffers
@@ -114,7 +118,7 @@ for it in range(config['max iters']):
             if WANDB_ENABLE:
                 wandb.log(merged, step=it)
     # else:
-    #    print(it+1, '/', config['max iters'])
+    #     print(it+1, '/', config['max iters'])
 
 if WANDB_ENABLE:
     torch.onnx.export(model, noise, "model.onnx")

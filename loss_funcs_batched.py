@@ -13,12 +13,12 @@ def loss_l1(fitness_list, logps, utility=mean_utility):
     return (sample_logp * u).mean()
 
 
-def loss_l5(fitness_list, logps, distribs, gamma=1., utility=mean_utility):
-    gamma = torch.as_tensor(gamma, dtype=torch.float32)
+def loss_l5(fitness_list, logps, distribs, gamma=1., utility=mean_utility, device='cpu'):
+    gamma = torch.as_tensor(gamma, dtype=torch.float32, device=device)
     n = len(distribs)
 
     # compute Z vector (max entropy)
-    Z = torch.as_tensor([-np.log(1/(n-i)) for i in range(n-1)])
+    Z = torch.as_tensor([-np.log(1/(n-i)) for i in range(n-1)], device=device)
     # entropy for each distribution of each batch. shape: (batch_size, N)
     H = torch.stack([d.entropy() for d in distribs]).T
     # rho: convergency vector, averaged across distribution dimension. shape: (batch_size)
