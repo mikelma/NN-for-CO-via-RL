@@ -2,7 +2,6 @@ import models
 import torch
 import utils
 from torch.optim import Adam
-#from datalog import DataLogger
 import uuid
 import pypermu
 from loss_funcs_batched import loss_l1, loss_l5
@@ -12,7 +11,7 @@ import os
 
 # --------------------- configuration --------------------- #
 LOG_DIR = './'
-WANDB_NAME = 't2-l5-gamma'
+WANDB_NAME = 'kalimero-0'
 N_SAMPLES = 64
 INST_PATH, INST_SIZE, WRITE_LOG, WANDB_ENABLE = utils.arg_parse()
 
@@ -31,16 +30,12 @@ config = {'instance': INST_PATH.split('/')[-1],
           'n samples': N_SAMPLES,
           'learning rate': .0003,
           'noise length': 128,
-          'loss function': 'L5',
+          'loss function': 'L1',
           'eval inverse': True,
           'model': models.SimpleModelBatched,
           'batch size': batch_size,
           'gamma': 1,
           }
-
-# if WRITE_LOG:
-#    from datalog import DataLogger
-#    dl = DataLogger(config)
 
 if WANDB_ENABLE:
     import wandb
@@ -76,17 +71,16 @@ for it in range(config['max iters']):
                                     for batch in permus]).float().to(DEVICE)
 
     # --------------------- logger --------------------- #
-    min_f = fitness_list.min().item()
-    best_fitness = best_fitness if min_f >= best_fitness else min_f
-    if WANDB_ENABLE:
-        wandb.log({
-            'min fitness': min_f,
-            'mean fitness': fitness_list.mean().item(),
-            'best fitness': best_fitness,
-        }, step=it)
+    if WRITE_LOG or WANDB_ENABLE:
+        min_f = fitness_list.min().item()
+        best_fitness = best_fitness if min_f >= best_fitness else min_f
 
-    # if WRITE_LOG:
-    #    dl.push(fitness_list=fitness_list.cpu().numpy())
+        if WANDB_ENABLE:
+            wandb.log({
+                'min fitness': min_f,
+                'mean fitness': fitness_list.mean().item(),
+                'best fitness': best_fitness,
+            }, step=it)
     # -------------------------------------------------- #
 
     if config['loss function'] == 'L1':
@@ -100,7 +94,6 @@ for it in range(config['max iters']):
     loss.backward()  # update gradient buffers
     optimizer.step()  # update model's parameters
 
-    # if WRITE_LOG or WANDB_ENABLE:
     if WANDB_ENABLE:
         with torch.no_grad():
             # entropy of all N distributions (averaged across batches)
@@ -113,12 +106,8 @@ for it in range(config['max iters']):
                     'loss': loss.item()}
             merged = {**entropies, **data}
 
-            # if WRITE_LOG:
-            #    dl.push(other=merged)
             if WANDB_ENABLE:
                 wandb.log(merged, step=it)
-    # else:
-    #     print(it+1, '/', config['max iters'])
 
 if WANDB_ENABLE:
     torch.onnx.export(model, noise, "model.onnx")
@@ -130,5 +119,3 @@ if WRITE_LOG:
             ','.join([key for key in config.keys()]+['best fitness'])+'\n',
             ','.join([str(config[key])
                       for key in config.keys()]+[str(best_fitness)])+'\n'])
-
-    # dl.to_csv(LOG_DIR+str(uuid.uuid4())+'.csv', config['max iters'])
