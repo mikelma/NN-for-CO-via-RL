@@ -6,14 +6,22 @@ def mean_utility(fitness_list):
     return fitness_list - fitness_list.mean(1).view(-1, 1)
 
 
-def loss_l1(fitness_list, logps, utility=mean_utility):
+def loss_l1(fitness_list, logps, utility=mean_utility, debug=False):
     u = utility(fitness_list)
     # log P(V) = sum(log P(V(i))), where i=0..(n-1)
     sample_logp = logps.sum(-1)
-    return (sample_logp * u).mean()
+    loss = (sample_logp * u).mean()
+
+    if debug:
+        return loss, {'logp': sample_logp.mean().item(),
+                      'U max': u.max().item(),
+                      'U min': u.min().item()}
+    else:
+        return loss
 
 
-def loss_l5(fitness_list, logps, distribs, gamma=1., utility=mean_utility, device='cpu'):
+def loss_l5(fitness_list, logps, distribs, gamma=1.,
+            utility=mean_utility, device='cpu', debug=False):
     gamma = torch.as_tensor(gamma, dtype=torch.float32, device=device)
     n = len(distribs)
 
@@ -32,4 +40,12 @@ def loss_l5(fitness_list, logps, distribs, gamma=1., utility=mean_utility, devic
 
     u = utility(fitness_list)
 
-    return ((u * scaled_logps).mean(1) * rho).mean()
+    loss = ((u * scaled_logps).mean(1) * rho).mean()
+    if debug:
+        return loss, {'rho': rho.mean().item(),
+                      'scaled logps': scaled_logps.mean().item(),
+                      'H+gamma': H.mean(),
+                      'U max': u.max().item(),
+                      'U min': u.min().item()}
+    else:
+        return loss
