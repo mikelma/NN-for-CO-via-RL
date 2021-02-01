@@ -60,7 +60,41 @@ class SimpleModelBatched(torch.nn.Module):
             logps.append(d.log_prob(sample))
 
         samples = torch.stack(samples, dim=0).T
-        #logps = torch.stack(logps, dim=0).T.sum(2)
+        # logps = torch.stack(logps, dim=0).T.sum(2)
+        logps = torch.stack(logps, dim=0).T
+        return distribs, samples, logps
+
+
+class BatchedResidual(SimpleModelBatched):
+    name = 'BatchedResidual'
+
+    def __init__(self, D_in, N, device='cuda:0'):
+        super(BatchedResidual, self).__init__(D_in, N, device)
+        # identity tensors do not require gradient
+        self.identity = [torch.as_tensor(
+            [1.] + [0.]*(N-i-1), device=device) for i in range(N)]
+
+    def forward(self, x):
+        logits = super().forward(x)
+        # relu activation is needed to avoid negative values
+        return [F.relu(self.identity[i] + logits[i]) for i in range(self.n)]
+
+    def get_samples_and_logp(self, x, n_samples):
+        out = self.forward(x)
+        distribs = []
+        samples = []
+        logps = []
+        for probs in out:
+            # probabilities will be normalized to sum 1
+            d = Categorical(probs=probs)
+            # collect new samples
+            sample = d.sample((n_samples,))
+            samples.append(sample)
+            distribs.append(d)
+            # get log probabilities of samples
+            logps.append(d.log_prob(sample))
+
+        samples = torch.stack(samples, dim=0).T
         logps = torch.stack(logps, dim=0).T
         return distribs, samples, logps
 

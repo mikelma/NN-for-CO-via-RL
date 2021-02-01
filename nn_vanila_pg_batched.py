@@ -11,7 +11,7 @@ import os
 
 # --------------------- configuration --------------------- #
 LOG_DIR = './'
-WANDB_NAME = 'kalimero-0'
+WANDB_NAME = 'resnet-test'
 N_SAMPLES = 64
 INST_PATH, INST_SIZE, WRITE_LOG, WANDB_ENABLE = utils.arg_parse()
 
@@ -32,7 +32,7 @@ config = {'instance': INST_PATH.split('/')[-1],
           'noise length': 128,
           'loss function': 'L1',
           'eval inverse': True,
-          'model': models.SimpleModelBatched,
+          'model': models.BatchedResidual,
           'batch size': batch_size,
           'gamma': 1,
           }
