@@ -65,6 +65,62 @@ class SimpleModelBatched(torch.nn.Module):
         return distribs, samples, logps
 
 
+class TinyBatched(torch.nn.Module):
+    name = 'TinyBatched'
+
+    def __init__(self, D_in, N, device='cuda:0'):
+        super(TinyBatched, self).__init__()
+        self.n = N  # length of the inversion vector to sample
+        self.dev = device
+
+        # an output layer for each position in the solutions
+        self.layers = torch.nn.ModuleList(
+            [torch.nn.Linear(D_in, N-i) for i in range(N)])
+
+    def forward(self, x):
+        return [layer(x) for layer in self.layers]
+
+    def get_samples_and_logp(self, x, n_samples):
+        logits = self.forward(x)
+        distribs = []
+        samples = []
+        logps = []
+        for l in logits:
+            d = Categorical(logits=l)
+            sample = d.sample((n_samples,))
+            samples.append(sample)
+            distribs.append(d)
+            logps.append(d.log_prob(sample))
+
+        samples = torch.stack(samples, dim=0).T
+        logps = torch.stack(logps, dim=0).T
+        return distribs, samples, logps
+
+
+class DeepBatched(SimpleModelBatched):
+    name = 'DeepBatched'
+
+    def __init__(self, D_in, N, device='cuda:0'):
+        super(DeepBatched, self).__init__(D_in, N, device)
+
+        # create additional layers
+        self.l2 = torch.nn.Linear(512, 512)
+        self.l3 = torch.nn.ModuleList(
+            [torch.nn.Linear(512, 512) for i in range(N)])
+
+        def forward(self, x):
+            # shared layers
+            x = F.relu(self.l1(x))
+            x = F.relu(self.l2(x))
+
+            out_list = [layer(x) for layer in self.out_layers]
+            out_list = []
+            for i in range(self.n):
+                interm = F.relu(self.l3[i](x))
+                out_list.append(self.out_layers[i](interm))
+            return out_list
+
+
 class BatchedResidual(SimpleModelBatched):
     name = 'BatchedResidual'
 
@@ -97,40 +153,6 @@ class BatchedResidual(SimpleModelBatched):
         samples = torch.stack(samples, dim=0).T
         logps = torch.stack(logps, dim=0).T
         return distribs, samples, logps
-
-
-class MultiHeadModel(torch.nn.Module):
-    name = 'MultiHeadModel 1'
-
-    def __init__(self, D_in, N, device='cuda:0'):
-        super(MultiHeadModel, self).__init__()
-        self.n = N  # length of the inversion vector to sample
-        self.dev = device
-
-        # create shared layer
-        self.l1 = torch.nn.Linear(D_in, 512)
-        # an output layer for each position in the solutions
-        self.policy_head = torch.nn.ModuleList(
-            [torch.nn.Linear(512, self.n-i) for i in range(N)])
-        # the state-value prediction head
-        self.value_head = torch.nn.Linear(512, 1)
-
-    def forward(self, x):
-        # shared layer
-        shared_out = F.relu(self.l1(x))
-
-        # policy head output
-        policy = [layer(shared_out) for layer in self.policy_head]
-
-        # state-value prediction
-        value = self.value_head(shared_out)
-
-        return policy, value
-
-    def get_distribution_and_value(self, x):
-        policy_weights, value = self.forward(x)
-        policy = [Categorical(logits=w) for w in policy_weights]
-        return policy, value
 
 
 def sample(distribution, n_samples):
