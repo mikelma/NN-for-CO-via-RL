@@ -9,16 +9,22 @@ import numpy as np
 import os
 
 
-# --------------------- configuration --------------------- #
-LOG_DIR = './'
-WANDB_NAME = 'resnet-test'
+# ------------------------ params ------------------------- #
+MODEL = models.SimpleModelBatched
+#BATCH_BOUND = 'lower'
+BATCH_BOUND = 'upper'
+LOSS = 'L1'
 N_SAMPLES = 64
+
+LOG_DIR = './'
+WANDB_NAME = 'depth-comp'
+# --------------------------------------------------------- #
+
+# --------------------- configuration --------------------- #
 INST_PATH, INST_SIZE, WRITE_LOG, WANDB_ENABLE = utils.arg_parse()
 
-a = np.array([2**i for i in range(10)])
-batch_size = a[np.where(INST_SIZE < a)[0][0]]
-max_evals = 1000*INST_SIZE**2
-max_iters = int(max_evals/(batch_size*N_SAMPLES))
+MAX_ITERS, BATCH_SIZE = utils.get_max_iters_and_batch_size(
+    INST_SIZE, N_SAMPLES, 1000*INST_SIZE**2, batch_size_bound=BATCH_BOUND)
 
 # choose device depending if the script is run in my host machine
 # or remotely in the cluster
@@ -26,14 +32,14 @@ DEVICE = 'cuda:0' if os.uname()[1] == 'marvin' else 'cpu'
 
 config = {'instance': INST_PATH.split('/')[-1],
           'instance size': INST_SIZE,
-          'max iters': max_iters,
+          'max iters': MAX_ITERS,
           'n samples': N_SAMPLES,
           'learning rate': .0003,
           'noise length': 128,
-          'loss function': 'L1',
+          'loss function': LOSS,
           'eval inverse': True,
-          'model': models.BatchedResidual,
-          'batch size': batch_size,
+          'model': MODEL.name,
+          'batch size': BATCH_SIZE,
           'gamma': 1,
           }
 
@@ -43,13 +49,13 @@ if WANDB_ENABLE:
 # --------------------------------------------------------- #
 
 problem = pypermu.problems.pfsp.Pfsp(INST_PATH)
-model = config['model'](
+model = MODEL(
     config['noise length'], config['instance size'], device=DEVICE)
 model.to(DEVICE)
+
 optimizer = Adam(model.parameters(), lr=config['learning rate'])
 
 best_fitness = float('inf')
-
 for it in range(config['max iters']):
     noise = torch.rand(
         (config['batch size'], config['noise length'])).to(DEVICE)
@@ -109,9 +115,9 @@ for it in range(config['max iters']):
             if WANDB_ENABLE:
                 wandb.log(merged, step=it)
 
-if WANDB_ENABLE:
-    torch.onnx.export(model, noise, "model.onnx")
-    wandb.save("model.onnx")
+# if WANDB_ENABLE:
+#    torch.onnx.export(model, noise, "net.onnx")
+#    wandb.save("net.onnx")
 
 if WRITE_LOG:
     with open(str(uuid.uuid4())+'.csv', 'w') as f:
