@@ -20,6 +20,29 @@ def arg_parse():
     return args.instance[0], args.instance_size[0], write_log, wandb_enable
 
 
+def get_max_iters_and_batch_size(inst_size: int, n_samples: int, max_evals: int, batch_size_bound: str = 'lower'):
+    '''Compute the maximum number of iterations and batch size to match a given number of solution evaluations.
+
+    - inst_size (int): Size of the instance, also referred as N.
+    - n_samples (int): Number of solutions to sample from the model per iteration.
+    - max_evals (int): Maximum number of solution evaluations to match.
+    - batch_size_bound (str): There are two available options: `lower` and `upper`. Determines the boound
+    to use when choosing the batch size from powers of two. Example: n=20, `lower` chooses 16, while `upper` chooses 32 as
+    the batch size to use.
+    '''
+    assert batch_size_bound in ['lower', 'upper']
+
+    a = np.array([2**i for i in range(15)])
+
+    if batch_size_bound == 'lower':
+        batch_size = a[np.where(inst_size > a)[0]][-1]  # lower bound
+    else:
+        batch_size = a[np.where(inst_size < a)[0]][0]  # upper bound
+
+    max_iters = int(max_evals/(batch_size*n_samples))
+    return max_iters, batch_size
+
+
 def marina2permu(marina):
     n = len(marina)
     e = list(range(n))
