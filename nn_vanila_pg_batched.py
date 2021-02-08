@@ -4,7 +4,7 @@ import utils
 from torch.optim import Adam
 import uuid
 import pypermu
-from loss_funcs_batched import loss_l1, loss_l5
+from loss_funcs_batched import loss_l1, loss_l5, mean_utility, standardized_utility
 import numpy as np
 import os
 
@@ -41,6 +41,7 @@ config = {'instance': INST_PATH.split('/')[-1],
           'model': MODEL.name,
           'batch size': BATCH_SIZE,
           'gamma': 1,
+          'utility': mean_utility,
           }
 
 if WANDB_ENABLE:
@@ -90,11 +91,11 @@ for it in range(config['max iters']):
     # -------------------------------------------------- #
 
     if config['loss function'] == 'L1':
-        loss = loss_l1(fitness_list, logps)
+        loss = loss_l1(fitness_list, logps, utility=config['utility'])
 
     elif config['loss function'] == 'L5':
         loss = loss_l5(fitness_list, logps, distribution,
-                       config['gamma'], device=DEVICE)
+                       config['gamma'], utility=config['utility'], device=DEVICE)
 
     optimizer.zero_grad()  # clear gradient buffers
     loss.backward()  # update gradient buffers

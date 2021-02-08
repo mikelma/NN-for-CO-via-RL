@@ -6,6 +6,11 @@ def mean_utility(fitness_list):
     return fitness_list - fitness_list.mean(1).view(-1, 1)
 
 
+def standardized_utility(fitness_list):
+    utility = mean_utility(fitness_list)
+    return utility / utility.std(1).view(-1, 1)
+
+
 def loss_l1(fitness_list, logps, utility=mean_utility, debug=False):
     u = utility(fitness_list)
     # log P(V) = sum(log P(V(i))), where i=0..(n-1)
