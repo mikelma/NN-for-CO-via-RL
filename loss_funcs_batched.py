@@ -8,7 +8,7 @@ def mean_utility(fitness_list):
 
 def standardized_utility(fitness_list):
     utility = mean_utility(fitness_list)
-    return utility / utility.std(1).view(-1, 1)
+    return utility / (utility.std(1).view(-1, 1) + 1e-10)
 
 
 def loss_l1(fitness_list, logps, utility=mean_utility, debug=False):
