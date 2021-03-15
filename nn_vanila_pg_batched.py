@@ -61,28 +61,15 @@ model.to(DEVICE)
 
 optimizer = Adam(model.parameters(), lr=config['learning rate'])
 
-fig, axes = plt.subplots(3, 1)
-
-
-def plot_hist(axes, i, layer, layer_name):
-    bias = layer.bias.detach().cpu().numpy()
-    # mean_b = np.absolute(bias).mean()
-
-    # weigth = layer.weigth.detach().cpu().numpy()
-    # mean_w = np.absolute(weigth).mean()
-
-    axes[i].cla()
-    axes[i].plot(np.arange(bias.shape[0]), bias)
-    axes[i].set_title(f'Bias {layer_name}')
-
+fig, axes = plt.subplots(1, 1)
 
 best_fitness = float('inf')
 for it in range(config['max iters']):
     noise = torch.rand(
         (config['batch size'], config['noise length'])).to(DEVICE)
 
-    distribution, samples, logps = model.get_samples_and_logp(
-        noise, config['n samples'])
+    distribution, samples, logps, shared_out = model.get_samples_and_logp(
+        noise, config['n samples'], return_inermediate=True)
 
     # convert sampled marina vectors to their permutation representation
     permus = [pypermu.utils.transformations.marina2permu_population(
@@ -122,10 +109,12 @@ for it in range(config['max iters']):
 
     # ---------------------------------------- #
 
-    plot_hist(axes, 0, model.l1, 'Shared1')
-    plot_hist(axes, 1, model.out_layers[0], 'Out0')
-    plot_hist(axes, 2, model.out_layers[9], 'Out9')
+    axes.cla()
+    axes.plot(np.arange(512),
+              np.abs(shared_out.detach().cpu().numpy()).mean(0))
+    axes.set_title('Shared1 layer output')
     # plt.show()
+    print(it)
 
     plt.savefig('imgs/{:0>3}.png'.format(it))
 

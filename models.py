@@ -42,13 +42,20 @@ class SimpleModelBatched(torch.nn.Module):
         self.out_layers = torch.nn.ModuleList(
             [torch.nn.Linear(512, self.n-i) for i in range(N)])
 
-    def forward(self, x):
+    def forward(self, x, return_inermediate=False):
         x = F.relu(self.l1(x))
         out_list = [layer(x) for layer in self.out_layers]
-        return out_list
+        if not return_inermediate:
+            return out_list
+        else:
+            return out_list, x
 
-    def get_samples_and_logp(self, x, n_samples):
-        logits = self.forward(x)
+    def get_samples_and_logp(self, x, n_samples, return_inermediate=False):
+        if not return_inermediate:
+            logits = self.forward(x, False)
+        else:
+            logits, shared_out = self.forward(x, True)
+
         distribs = []
         samples = []
         logps = []
@@ -60,25 +67,12 @@ class SimpleModelBatched(torch.nn.Module):
             logps.append(d.log_prob(sample))
 
         samples = torch.stack(samples, dim=0).T
-        # logps = torch.stack(logps, dim=0).T.sum(2)
         logps = torch.stack(logps, dim=0).T
-        return distribs, samples, logps
 
-    # def get_samples_and_logp_and_intermediate(self, x, n_samples):
-    #     logits, shared_out = self.forward(x)
-    #     distribs = []
-    #     samples = []
-    #     logps = []
-    #     for l in logits:
-    #         d = Categorical(logits=l)
-    #         sample = d.sample((n_samples,))
-    #         samples.append(sample)
-    #         distribs.append(d)
-    #         logps.append(d.log_prob(sample))
-
-    #     samples = torch.stack(samples, dim=0).T
-    #     logps = torch.stack(logps, dim=0).T
-    #     return distribs, samples, logps, shared_out.mean(0)
+        if not return_inermediate:
+            return distribs, samples, logps
+        else:
+            return distribs, samples, logps, shared_out
 
 
 class TinyBatched(torch.nn.Module):
