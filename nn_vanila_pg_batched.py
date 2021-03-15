@@ -61,7 +61,20 @@ model.to(DEVICE)
 
 optimizer = Adam(model.parameters(), lr=config['learning rate'])
 
-fig, axes = plt.subplots(1, 3)
+fig, axes = plt.subplots(3, 1)
+
+
+def plot_hist(axes, i, layer, layer_name):
+    bias = layer.bias.detach().cpu().numpy()
+    # mean_b = np.absolute(bias).mean()
+
+    # weigth = layer.weigth.detach().cpu().numpy()
+    # mean_w = np.absolute(weigth).mean()
+
+    axes[i].cla()
+    axes[i].plot(np.arange(bias.shape[0]), bias)
+    axes[i].set_title(f'Bias {layer_name}')
+
 
 best_fitness = float('inf')
 for it in range(config['max iters']):
@@ -108,63 +121,15 @@ for it in range(config['max iters']):
     loss.backward()  # update gradient buffers
 
     # ---------------------------------------- #
-    if True:
-        g = model.l1.weight.detach().cpu().numpy()
-        mean_g_1 = np.absolute(g).mean()
 
-        g = model.l1.bias.detach().cpu().numpy()
-        mean_b_1 = np.absolute(g).mean()
+    plot_hist(axes, 0, model.l1, 'Shared1')
+    plot_hist(axes, 1, model.out_layers[0], 'Out0')
+    plot_hist(axes, 2, model.out_layers[9], 'Out9')
+    # plt.show()
 
-        # axes[0].cla()
-        # p = axes[0].matshow(g)
-        # b1 = fig.colorbar(p, ax=axes[0])
-        # axes[0].set_title(f'Shared layer')
+    plt.savefig('imgs/{:0>3}.png'.format(it))
 
-        g = model.out_layers[0].weight.detach().cpu().numpy().T
-        mean_g_2 = np.absolute(g).mean()
-
-        g = model.out_layers[0].bias.detach().cpu().numpy()
-        mean_b_2 = np.absolute(g).mean()
-        # axes[1].cla()
-        # p = axes[1].matshow(g)
-        # b2 = fig.colorbar(p, ax=axes[1])
-        # axes[1].set_title('Out0')
-
-        g = model.out_layers[9].weight.detach().cpu().numpy().T
-        mean_g_3 = np.absolute(g).mean()
-
-        g = model.out_layers[9].bias.detach().cpu().numpy()
-        mean_b_3 = np.absolute(g).mean()
-        # axes[2].cla()
-        # p = axes[2].matshow(g)
-        # b3 = fig.colorbar(p, ax=axes[2])
-        # axes[2].set_title('Out9')
-
-        # plt.savefig('imgs/{:0>3}.png'.format(it))
-
-        # wandb.log({'weigth values': [wandb.Image(
-        #     plt, caption='Weigth matrix values from different layers')]}, step=it)
-
-        wandb.log({'weigth magnitude shared1': mean_g_1,
-                   'weigth magnitude out0': mean_g_2,
-                   'weigth magnitude out9': mean_g_3,
-                   'bias magnitude shared1': mean_b_1,
-                   'bias magnitude out0': mean_b_2,
-                   'bias magnitude out9': mean_b_3,
-                   }, step=it)
-
-        # wandb.log({'shared layer out': [wandb.Histogram(
-        #     shared_out.detach().cpu().numpy())]}, step=it)
-
-        # b1.remove()
-        # b2.remove()
-        # b3.remove()
-        # for i in [0, 4, 9, 17]:
-        #     g = model.layers[9].weight.grad.cpu().numpy().T
-        #     mean_grad = np.absolute(g).mean()
-        #     wandb.log({'grad mean out'+str(i): mean_grad}, step=it)
-
-        # ---------------------------------------- #
+    # ---------------------------------------- #
     optimizer.step()  # update model's parameters
 
     if WANDB_ENABLE:
