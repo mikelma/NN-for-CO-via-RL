@@ -64,6 +64,22 @@ class SimpleModelBatched(torch.nn.Module):
         logps = torch.stack(logps, dim=0).T
         return distribs, samples, logps
 
+    # def get_samples_and_logp_and_intermediate(self, x, n_samples):
+    #     logits, shared_out = self.forward(x)
+    #     distribs = []
+    #     samples = []
+    #     logps = []
+    #     for l in logits:
+    #         d = Categorical(logits=l)
+    #         sample = d.sample((n_samples,))
+    #         samples.append(sample)
+    #         distribs.append(d)
+    #         logps.append(d.log_prob(sample))
+
+    #     samples = torch.stack(samples, dim=0).T
+    #     logps = torch.stack(logps, dim=0).T
+    #     return distribs, samples, logps, shared_out.mean(0)
+
 
 class TinyBatched(torch.nn.Module):
     name = 'TinyBatched'
